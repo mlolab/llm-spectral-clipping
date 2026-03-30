@@ -306,7 +306,9 @@ class SharedMemoryDataReader:
             shm_array[:] = data_mmap[:]
             del data_mmap
 
-            print(f"Rank 0: Data loaded into shared memory '{self.shm_name}' ({file_size / 1e9:.2f} GB)")
+            print(
+                f"Rank 0: Data loaded into shared memory '{self.shm_name}' ({file_size / 1e9:.2f} GB)"
+            )
 
         # Barrier to ensure rank 0 has created shared memory.
         # Use a gloo CPU group to avoid NCCL timeout when rank 0 is busy loading
@@ -325,9 +327,7 @@ class SharedMemoryDataReader:
             print(f"Rank {self.rank}: Attached to shared memory '{self.shm_name}'")
 
         # Create numpy array view of shared memory (no copy)
-        self.data = np.ndarray(
-            (num_elements,), dtype=np.uint16, buffer=self.shm.buf
-        )
+        self.data = np.ndarray((num_elements,), dtype=np.uint16, buffer=self.shm.buf)
 
     def __len__(self):
         return self.num_tokens - self.sequence_length - 1
@@ -342,9 +342,9 @@ class SharedMemoryDataReader:
             idxs = self._sample_without_replacement(self.step)
         self.step += 1
 
-        xy = np.stack([self.data[i : i + self.sequence_length + 1] for i in idxs]).astype(
-            np.int64
-        )
+        xy = np.stack(
+            [self.data[i : i + self.sequence_length + 1] for i in idxs]
+        ).astype(np.int64)
         x = torch.from_numpy(xy[:, :-1]).contiguous()
         y = torch.from_numpy(xy[:, 1:]).contiguous()
         return x, y

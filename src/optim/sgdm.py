@@ -6,7 +6,7 @@ import torch
 class SGDM(torch.optim.Optimizer):
     """
     SGD with Momentum and Decoupled Weight Decay.
-    
+
     """
 
     def __init__(
@@ -52,9 +52,7 @@ class SGDM(torch.optim.Optimizer):
         return state
 
     @torch.no_grad()
-    def _compute_update(
-        self, grad, state, lr, momentum, nesterov, dampening, **kwargs
-    ):
+    def _compute_update(self, grad, state, lr, momentum, nesterov, dampening, **kwargs):
         if momentum != 0:
             buf = state["momentum_buffer"]
             buf.mul_(momentum).add_(grad, alpha=1 - dampening)

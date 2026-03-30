@@ -64,12 +64,16 @@ class SVDRecorder:
         if self.save_dir:
             self.save_dir.mkdir(parents=True, exist_ok=True)
 
-        print(f"[SVDRecorder] Enabled. Will record at steps: {sorted(self.record_steps)}")
+        print(
+            f"[SVDRecorder] Enabled. Will record at steps: {sorted(self.record_steps)}"
+        )
         print(f"[SVDRecorder] Recording layers: {list(self.layer_names.keys())}")
 
     def _setup_layer_names(self, model, cfg):
         """Setup layer names to record based on configuration."""
-        svd_layers = getattr(cfg, "svd_layers", ["embedding", "early", "middle", "late"])
+        svd_layers = getattr(
+            cfg, "svd_layers", ["embedding", "early", "middle", "late"]
+        )
         n_layer = getattr(cfg, "n_layer", 12)
 
         # Map position names to layer indices
@@ -98,7 +102,9 @@ class SVDRecorder:
         """Check if SVD should be recorded at this step."""
         return self.enabled and step in self.record_steps
 
-    def get_target_params(self, model: torch.nn.Module) -> Dict[str, torch.nn.Parameter]:
+    def get_target_params(
+        self, model: torch.nn.Module
+    ) -> Dict[str, torch.nn.Parameter]:
         """Get the target parameters to record."""
         if not self.enabled:
             return {}
@@ -110,7 +116,9 @@ class SVDRecorder:
             if param_name in param_dict:
                 target_params[friendly_name] = param_dict[param_name]
             else:
-                print(f"[SVDRecorder] Warning: Parameter {param_name} not found in model")
+                print(
+                    f"[SVDRecorder] Warning: Parameter {param_name} not found in model"
+                )
 
         return target_params
 
@@ -172,10 +180,12 @@ class SVDRecorder:
             sv = self.compute_singular_values(grad)
             self.records[step][name]["grad_sv"] = sv
 
-            print(f"[SVDRecorder] Step {step}, {name} grad: "
-                  f"shape={tuple(grad.shape)}, "
-                  f"sv_max={sv[0].item():.4e}, sv_min={sv[-1].item():.4e}, "
-                  f"sv_ratio={sv[0].item()/sv[-1].item():.2e}")
+            print(
+                f"[SVDRecorder] Step {step}, {name} grad: "
+                f"shape={tuple(grad.shape)}, "
+                f"sv_max={sv[0].item():.4e}, sv_min={sv[-1].item():.4e}, "
+                f"sv_ratio={sv[0].item()/sv[-1].item():.2e}"
+            )
 
     @torch.no_grad()
     def record_update(self, name: str, update: torch.Tensor, step: int):
@@ -202,10 +212,12 @@ class SVDRecorder:
         sv = self.compute_singular_values(update)
         self.records[step][name]["update_sv"] = sv
 
-        print(f"[SVDRecorder] Step {step}, {name} update: "
-              f"shape={tuple(update.shape)}, "
-              f"sv_max={sv[0].item():.4e}, sv_min={sv[-1].item():.4e}, "
-              f"sv_ratio={sv[0].item()/sv[-1].item():.2e}")
+        print(
+            f"[SVDRecorder] Step {step}, {name} update: "
+            f"shape={tuple(update.shape)}, "
+            f"sv_max={sv[0].item():.4e}, sv_min={sv[-1].item():.4e}, "
+            f"sv_ratio={sv[0].item()/sv[-1].item():.2e}"
+        )
 
     @torch.no_grad()
     def store_weights_before_step(self, model: torch.nn.Module, step: int):
@@ -230,7 +242,9 @@ class SVDRecorder:
             self._stored_weights[name] = param.data.clone()
 
     @torch.no_grad()
-    def compute_and_record_updates(self, model: torch.nn.Module, optimizer: torch.optim.Optimizer, step: int):
+    def compute_and_record_updates(
+        self, model: torch.nn.Module, optimizer: torch.optim.Optimizer, step: int
+    ):
         """
         Compute optimizer updates from weight differences and record their SVD.
 
@@ -254,7 +268,7 @@ class SVDRecorder:
         if not self.should_record(step):
             return
 
-        if not hasattr(self, '_stored_weights') or not self._stored_weights:
+        if not hasattr(self, "_stored_weights") or not self._stored_weights:
             print(f"[SVDRecorder] Warning: No stored weights for step {step}")
             return
 
@@ -310,7 +324,9 @@ class SVDRecorder:
         return self.param_to_layer.get(param_name, None)
 
 
-def create_svd_recorder(model: torch.nn.Module, cfg, exp_dir: Path) -> Optional[SVDRecorder]:
+def create_svd_recorder(
+    model: torch.nn.Module, cfg, exp_dir: Path
+) -> Optional[SVDRecorder]:
     """
     Factory function to create an SVD recorder if enabled.
 
@@ -413,13 +429,21 @@ class NoiseStructureRecorder:
         if self.save_dir:
             self.save_dir.mkdir(parents=True, exist_ok=True)
 
-        print(f"[NoiseStructureRecorder] Enabled. Will record at steps: {sorted(self.record_steps)}")
-        print(f"[NoiseStructureRecorder] Recording layers: {list(self.layer_names.keys())}")
-        print(f"[NoiseStructureRecorder] num_samples={self.num_samples}, top_k={self.top_k}, num_repeats={self.num_repeats}, stochastic_batch_size={self.stochastic_batch_size}")
+        print(
+            f"[NoiseStructureRecorder] Enabled. Will record at steps: {sorted(self.record_steps)}"
+        )
+        print(
+            f"[NoiseStructureRecorder] Recording layers: {list(self.layer_names.keys())}"
+        )
+        print(
+            f"[NoiseStructureRecorder] num_samples={self.num_samples}, top_k={self.top_k}, num_repeats={self.num_repeats}, stochastic_batch_size={self.stochastic_batch_size}"
+        )
 
     def _setup_layer_names(self, model, cfg):
         """Setup layer names to record based on configuration (same logic as SVDRecorder)."""
-        svd_layers = getattr(cfg, "svd_layers", ["embedding", "early", "middle", "late"])
+        svd_layers = getattr(
+            cfg, "svd_layers", ["embedding", "early", "middle", "late"]
+        )
         n_layer = getattr(cfg, "n_layer", 12)
 
         layer_indices = {
@@ -445,7 +469,9 @@ class NoiseStructureRecorder:
         """Check if noise structure should be recorded at this step."""
         return self.enabled and step in self.record_steps
 
-    def get_target_params(self, model: torch.nn.Module) -> Dict[str, torch.nn.Parameter]:
+    def get_target_params(
+        self, model: torch.nn.Module
+    ) -> Dict[str, torch.nn.Parameter]:
         """Get the target parameters to record."""
         if not self.enabled:
             return {}
@@ -457,12 +483,16 @@ class NoiseStructureRecorder:
             if param_name in param_dict:
                 target_params[friendly_name] = param_dict[param_name]
             else:
-                print(f"[NoiseStructureRecorder] Warning: Parameter {param_name} not found in model")
+                print(
+                    f"[NoiseStructureRecorder] Warning: Parameter {param_name} not found in model"
+                )
 
         return target_params
 
     @staticmethod
-    def _get_batch(reader: DataReader, device: str) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _get_batch(
+        reader: DataReader, device: str
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get a batch from the data reader and move to device."""
         x, y = reader.sample_batch()
         return x.to(device), y.to(device)
@@ -496,7 +526,9 @@ class NoiseStructureRecorder:
 
         # Return singular values and top-k vectors
         U_k = U[:, :actual_k].cpu()  # shape (m, actual_k)
-        V_k = Vh[:actual_k, :].T.cpu()  # shape (n, actual_k) - transpose because svd returns V^H
+        V_k = Vh[
+            :actual_k, :
+        ].T.cpu()  # shape (n, actual_k) - transpose because svd returns V^H
         singular_values = S.cpu()
 
         return singular_values, U_k, V_k
@@ -569,7 +601,9 @@ class NoiseStructureRecorder:
         # B is symmetric PSD, so eigenvalues = singular values
         eigenvalues = torch.linalg.eigvalsh(B.float())
         max_eigenvalue = eigenvalues[-1].item()  # eigvalsh returns in ascending order
-        max_eigenvalue = max(0.0, min(1.0, max_eigenvalue))  # clamp for numerical stability
+        max_eigenvalue = max(
+            0.0, min(1.0, max_eigenvalue)
+        )  # clamp for numerical stability
         spectral_dist = math.sqrt(max_eigenvalue)
 
         # Chordal distance: sqrt(trace(B) / k)
@@ -601,8 +635,9 @@ class NoiseStructureRecorder:
         target_params = self.get_target_params(model)
 
         # Initialize accumulators
-        grad_accum = {name: torch.zeros_like(param.data)
-                      for name, param in target_params.items()}
+        grad_accum = {
+            name: torch.zeros_like(param.data) for name, param in target_params.items()
+        }
 
         num_batches = self.num_samples // self.cfg.batch_size
 
@@ -704,7 +739,9 @@ class NoiseStructureRecorder:
         if not self.should_record(step):
             return
 
-        print(f"\n[NoiseStructureRecorder] Step {step}: Starting noise structure analysis...")
+        print(
+            f"\n[NoiseStructureRecorder] Step {step}: Starting noise structure analysis..."
+        )
 
         # Save current training state
         was_training = model.training
@@ -712,7 +749,9 @@ class NoiseStructureRecorder:
 
         # Step 1: Compute true gradient G
         num_batches = self.num_samples // self.cfg.batch_size
-        print(f"[NoiseStructureRecorder] Computing true gradient G over {self.num_samples} samples ({num_batches} batches)...")
+        print(
+            f"[NoiseStructureRecorder] Computing true gradient G over {self.num_samples} samples ({num_batches} batches)..."
+        )
         true_grads = self.compute_true_gradient(model, type_ctx, device)
 
         # Initialize record for this step
@@ -726,12 +765,14 @@ class NoiseStructureRecorder:
                 "top_k": self.top_k,
                 "num_repeats": self.num_repeats,
                 "noise_data_seed": getattr(self.cfg, "noise_data_seed", 9999),
-            }
+            },
         }
 
         # Step 2 & 3: For each layer, compute SVD of G and analyze noise
         for layer_name, G in true_grads.items():
-            print(f"[NoiseStructureRecorder] Processing layer: {layer_name} (shape={tuple(G.shape)})")
+            print(
+                f"[NoiseStructureRecorder] Processing layer: {layer_name} (shape={tuple(G.shape)})"
+            )
 
             # Compute full SVD of G to get top-k singular vectors
             sv_G, U_k, V_k = self.compute_full_svd_with_top_k(G, self.top_k)
@@ -747,13 +788,17 @@ class NoiseStructureRecorder:
                 "max_noise_spectral_norm": 0.0,  # Track max ||N||_2 seen
             }
 
-            print(f"  [G] ||G||_2 = {sv_G[0].item():.4e}, condition = {sv_G[0].item()/sv_G[-1].item():.2e}")
+            print(
+                f"  [G] ||G||_2 = {sv_G[0].item():.4e}, condition = {sv_G[0].item()/sv_G[-1].item():.2e}"
+            )
 
             # Step 3: Sample noise and analyze subspace distance (repeat many times)
             max_noise_sv = 0.0
             for repeat_idx in range(self.num_repeats):
                 # Get stochastic gradient (single batch)
-                stochastic_grads = self.compute_stochastic_gradient(model, type_ctx, device)
+                stochastic_grads = self.compute_stochastic_gradient(
+                    model, type_ctx, device
+                )
 
                 if layer_name not in stochastic_grads:
                     continue
@@ -773,8 +818,12 @@ class NoiseStructureRecorder:
 
                 # Compute subspace distances between N's and G's principal subspaces
                 # Returns (spectral_dist, chordal_dist) for each side
-                spec_dist_left, chord_dist_left = self.compute_subspace_distance(U_N, U_k)
-                spec_dist_right, chord_dist_right = self.compute_subspace_distance(V_N, V_k)
+                spec_dist_left, chord_dist_left = self.compute_subspace_distance(
+                    U_N, U_k
+                )
+                spec_dist_right, chord_dist_right = self.compute_subspace_distance(
+                    V_N, V_k
+                )
                 spectral_dist = max(spec_dist_left, spec_dist_right)
                 chordal_dist = max(chord_dist_left, chord_dist_right)
 
@@ -786,19 +835,36 @@ class NoiseStructureRecorder:
                 layer_record["noise_samples"].append(noise_sample)
 
                 if (repeat_idx + 1) % 5 == 0 or repeat_idx == 0:
-                    print(f"  [Repeat {repeat_idx+1}/{self.num_repeats}] ||N||_2 = {top_sv_N:.4e}, spectral={spectral_dist:.4f}, chordal={chordal_dist:.4f}")
+                    print(
+                        f"  [Repeat {repeat_idx+1}/{self.num_repeats}] ||N||_2 = {top_sv_N:.4e}, spectral={spectral_dist:.4f}, chordal={chordal_dist:.4f}"
+                    )
 
             layer_record["max_noise_spectral_norm"] = max_noise_sv
             step_record["layers"][layer_name] = layer_record
 
             # Print summary for this layer
-            all_top_sv = [ns["top_k_singular_values"][0].item() for ns in layer_record["noise_samples"]]
-            all_spectral = [ns["spectral_distance"] for ns in layer_record["noise_samples"]]
-            all_chordal = [ns["chordal_distance"] for ns in layer_record["noise_samples"]]
-            print(f"  [Summary] max ||N||_2 = {max_noise_sv:.4e} (vs ||G||_2 = {sv_G[0].item():.4e}, ratio = {max_noise_sv/sv_G[0].item():.2f})")
-            print(f"  [Summary] ||N||_2: mean={np.mean(all_top_sv):.4e}, std={np.std(all_top_sv):.4e}")
-            print(f"  [Summary] spectral_dist: mean={np.mean(all_spectral):.4f}, std={np.std(all_spectral):.4f}")
-            print(f"  [Summary] chordal_dist: mean={np.mean(all_chordal):.4f}, std={np.std(all_chordal):.4f}")
+            all_top_sv = [
+                ns["top_k_singular_values"][0].item()
+                for ns in layer_record["noise_samples"]
+            ]
+            all_spectral = [
+                ns["spectral_distance"] for ns in layer_record["noise_samples"]
+            ]
+            all_chordal = [
+                ns["chordal_distance"] for ns in layer_record["noise_samples"]
+            ]
+            print(
+                f"  [Summary] max ||N||_2 = {max_noise_sv:.4e} (vs ||G||_2 = {sv_G[0].item():.4e}, ratio = {max_noise_sv/sv_G[0].item():.2f})"
+            )
+            print(
+                f"  [Summary] ||N||_2: mean={np.mean(all_top_sv):.4e}, std={np.std(all_top_sv):.4e}"
+            )
+            print(
+                f"  [Summary] spectral_dist: mean={np.mean(all_spectral):.4f}, std={np.std(all_spectral):.4f}"
+            )
+            print(
+                f"  [Summary] chordal_dist: mean={np.mean(all_chordal):.4f}, std={np.std(all_chordal):.4f}"
+            )
 
         # Restore model state
         if was_training:
@@ -810,7 +876,9 @@ class NoiseStructureRecorder:
         # Save to disk
         self.save_records(step)
 
-        print(f"[NoiseStructureRecorder] Step {step}: Noise structure analysis complete.\n")
+        print(
+            f"[NoiseStructureRecorder] Step {step}: Noise structure analysis complete.\n"
+        )
 
     def save_records(self, step: int):
         """Save noise structure records for a given step to disk."""
@@ -822,7 +890,9 @@ class NoiseStructureRecorder:
 
         save_path = self.save_dir / f"noise_step_{step}.pt"
         torch.save(self.records[step], save_path)
-        print(f"[NoiseStructureRecorder] Saved noise records for step {step} to {save_path}")
+        print(
+            f"[NoiseStructureRecorder] Saved noise records for step {step} to {save_path}"
+        )
 
     def save_all_records(self):
         """Save all recorded noise structure data to disk."""
@@ -958,14 +1028,22 @@ class UpdateNoiseRecorder:
         if self.save_dir:
             self.save_dir.mkdir(parents=True, exist_ok=True)
 
-        print(f"[UpdateNoiseRecorder] Enabled. Will record at steps: {sorted(self.record_steps)}")
-        print(f"[UpdateNoiseRecorder] Recording layers: {list(self.layer_names.keys())}")
-        print(f"[UpdateNoiseRecorder] num_samples={self.num_samples}, top_k={self.top_k}, "
-              f"num_repeats={self.num_repeats}, stochastic_batch_size={self.stochastic_batch_size}")
+        print(
+            f"[UpdateNoiseRecorder] Enabled. Will record at steps: {sorted(self.record_steps)}"
+        )
+        print(
+            f"[UpdateNoiseRecorder] Recording layers: {list(self.layer_names.keys())}"
+        )
+        print(
+            f"[UpdateNoiseRecorder] num_samples={self.num_samples}, top_k={self.top_k}, "
+            f"num_repeats={self.num_repeats}, stochastic_batch_size={self.stochastic_batch_size}"
+        )
 
     def _setup_layer_names(self, model, cfg):
         """Setup layer names to record based on configuration (same logic as NoiseStructureRecorder)."""
-        svd_layers = getattr(cfg, "svd_layers", ["embedding", "early", "middle", "late"])
+        svd_layers = getattr(
+            cfg, "svd_layers", ["embedding", "early", "middle", "late"]
+        )
         n_layer = getattr(cfg, "n_layer", 12)
 
         layer_indices = {
@@ -991,7 +1069,9 @@ class UpdateNoiseRecorder:
         """Check if update noise structure should be recorded at this step."""
         return self.enabled and step in self.record_steps
 
-    def get_target_params(self, model: torch.nn.Module) -> Dict[str, torch.nn.Parameter]:
+    def get_target_params(
+        self, model: torch.nn.Module
+    ) -> Dict[str, torch.nn.Parameter]:
         """Get the target parameters to record."""
         if not self.enabled:
             return {}
@@ -1003,12 +1083,16 @@ class UpdateNoiseRecorder:
             if param_name in param_dict:
                 target_params[friendly_name] = param_dict[param_name]
             else:
-                print(f"[UpdateNoiseRecorder] Warning: Parameter {param_name} not found in model")
+                print(
+                    f"[UpdateNoiseRecorder] Warning: Parameter {param_name} not found in model"
+                )
 
         return target_params
 
     @staticmethod
-    def _get_batch(reader: DataReader, device: str) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _get_batch(
+        reader: DataReader, device: str
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get a batch from the data reader and move to device."""
         x, y = reader.sample_batch()
         return x.to(device), y.to(device)
@@ -1017,7 +1101,9 @@ class UpdateNoiseRecorder:
         """Clone all model parameters."""
         return {name: param.data.clone() for name, param in model.named_parameters()}
 
-    def restore_weights(self, model: torch.nn.Module, saved_weights: Dict[str, torch.Tensor]):
+    def restore_weights(
+        self, model: torch.nn.Module, saved_weights: Dict[str, torch.Tensor]
+    ):
         """Restore model parameters from saved dict."""
         restored_count = 0
         for name, param in model.named_parameters():
@@ -1025,14 +1111,20 @@ class UpdateNoiseRecorder:
                 param.data.copy_(saved_weights[name])
                 restored_count += 1
             else:
-                print(f"[UpdateNoiseRecorder] WARNING: Parameter {name} not found in saved_weights!")
+                print(
+                    f"[UpdateNoiseRecorder] WARNING: Parameter {name} not found in saved_weights!"
+                )
 
         # Sanity check
         total_params = sum(1 for _ in model.named_parameters())
         if restored_count != total_params:
-            print(f"[UpdateNoiseRecorder] WARNING: Only restored {restored_count}/{total_params} parameters!")
+            print(
+                f"[UpdateNoiseRecorder] WARNING: Only restored {restored_count}/{total_params} parameters!"
+            )
 
-    def _get_base_optimizer(self, optimizer: torch.optim.Optimizer) -> torch.optim.Optimizer:
+    def _get_base_optimizer(
+        self, optimizer: torch.optim.Optimizer
+    ) -> torch.optim.Optimizer:
         """Get the base optimizer if wrapped by SPECTRA."""
         if hasattr(optimizer, "base_optimizer"):
             return optimizer.base_optimizer
@@ -1063,8 +1155,10 @@ class UpdateNoiseRecorder:
             A fresh optimizer of the same type with copied momentum state
         """
         # Check if optimizer is wrapped with SPECTRA BEFORE unwrapping
-        is_spectral = (hasattr(optimizer, "base_optimizer") and
-                       type(optimizer).__name__ == "SPECTRA")
+        is_spectral = (
+            hasattr(optimizer, "base_optimizer")
+            and type(optimizer).__name__ == "SPECTRA"
+        )
         spectral_config = None
 
         if is_spectral:
@@ -1086,180 +1180,200 @@ class UpdateNoiseRecorder:
         # Build param groups with same hyperparams
         param_groups = []
         for group in base_opt.param_groups:
-            new_group = {k: v for k, v in group.items() if k != 'params'}
-            new_group['params'] = list(group['params'])
+            new_group = {k: v for k, v in group.items() if k != "params"}
+            new_group["params"] = list(group["params"])
             param_groups.append(new_group)
 
         # Create fresh optimizer of the same type
-        if opt_class_name == 'AdamW' or opt_class_name == 'Adam':
+        if opt_class_name == "AdamW" or opt_class_name == "Adam":
             temp_opt = torch.optim.AdamW(
                 param_groups,
-                lr=base_opt.defaults['lr'],
-                betas=base_opt.defaults.get('betas', (0.9, 0.999)),
-                eps=base_opt.defaults.get('eps', 1e-8),
-                weight_decay=base_opt.defaults.get('weight_decay', 0.0),
+                lr=base_opt.defaults["lr"],
+                betas=base_opt.defaults.get("betas", (0.9, 0.999)),
+                eps=base_opt.defaults.get("eps", 1e-8),
+                weight_decay=base_opt.defaults.get("weight_decay", 0.0),
                 fused=False,  # Disable fused for temp optimizer
             )
-        elif opt_class_name == 'Signum':
+        elif opt_class_name == "Signum":
             from .sign import Signum
+
             temp_opt = Signum(
                 param_groups,
-                lr=base_opt.defaults['lr'],
-                momentum=base_opt.defaults.get('momentum', 0),
-                dampening=base_opt.defaults.get('dampening', 0),
-                weight_decay=base_opt.defaults.get('weight_decay', 0.0),
-                nesterov=base_opt.defaults.get('nesterov', False),
-                sign_update=base_opt.defaults.get('sign_update', True),
+                lr=base_opt.defaults["lr"],
+                momentum=base_opt.defaults.get("momentum", 0),
+                dampening=base_opt.defaults.get("dampening", 0),
+                weight_decay=base_opt.defaults.get("weight_decay", 0.0),
+                nesterov=base_opt.defaults.get("nesterov", False),
+                sign_update=base_opt.defaults.get("sign_update", True),
             )
-        elif opt_class_name == 'SGD':
+        elif opt_class_name == "SGD":
             temp_opt = torch.optim.SGD(
                 param_groups,
-                lr=base_opt.defaults['lr'],
-                momentum=base_opt.defaults.get('momentum', 0),
-                dampening=base_opt.defaults.get('dampening', 0),
-                weight_decay=base_opt.defaults.get('weight_decay', 0.0),
-                nesterov=base_opt.defaults.get('nesterov', False),
+                lr=base_opt.defaults["lr"],
+                momentum=base_opt.defaults.get("momentum", 0),
+                dampening=base_opt.defaults.get("dampening", 0),
+                weight_decay=base_opt.defaults.get("weight_decay", 0.0),
+                nesterov=base_opt.defaults.get("nesterov", False),
             )
-        elif opt_class_name == 'AdEMAMix':
+        elif opt_class_name == "AdEMAMix":
             from .ademamix import AdEMAMix
+
             temp_opt = AdEMAMix(
                 param_groups,
-                lr=base_opt.defaults['lr'],
-                betas=base_opt.defaults.get('betas', (0.9, 0.999, 0.9999)),
-                alpha=base_opt.defaults.get('alpha', 5.0),
-                eps=base_opt.defaults.get('eps', 1e-8),
-                weight_decay=base_opt.defaults.get('weight_decay', 0.0),
+                lr=base_opt.defaults["lr"],
+                betas=base_opt.defaults.get("betas", (0.9, 0.999, 0.9999)),
+                alpha=base_opt.defaults.get("alpha", 5.0),
+                eps=base_opt.defaults.get("eps", 1e-8),
+                weight_decay=base_opt.defaults.get("weight_decay", 0.0),
             )
-        elif opt_class_name == 'Lion':
+        elif opt_class_name == "Lion":
             from .lion import Lion
+
             temp_opt = Lion(
                 param_groups,
-                lr=base_opt.defaults['lr'],
-                betas=base_opt.defaults.get('betas', (0.9, 0.99)),
-                weight_decay=base_opt.defaults.get('weight_decay', 0.0),
+                lr=base_opt.defaults["lr"],
+                betas=base_opt.defaults.get("betas", (0.9, 0.99)),
+                weight_decay=base_opt.defaults.get("weight_decay", 0.0),
             )
-        elif opt_class_name == 'ADOPT':
+        elif opt_class_name == "ADOPT":
             from .adopt import ADOPT
+
             temp_opt = ADOPT(
                 param_groups,
-                lr=base_opt.defaults['lr'],
-                betas=base_opt.defaults.get('betas', (0.9, 0.9999)),
-                eps=base_opt.defaults.get('eps', 1e-6),
-                weight_decay=base_opt.defaults.get('weight_decay', 0.0),
-                decouple=base_opt.defaults.get('decouple', True),
+                lr=base_opt.defaults["lr"],
+                betas=base_opt.defaults.get("betas", (0.9, 0.9999)),
+                eps=base_opt.defaults.get("eps", 1e-6),
+                weight_decay=base_opt.defaults.get("weight_decay", 0.0),
+                decouple=base_opt.defaults.get("decouple", True),
             )
-        elif opt_class_name == 'MARS':
+        elif opt_class_name == "MARS":
             from .mars import MARS
+
             temp_opt = MARS(
                 param_groups,
-                lr=base_opt.defaults['lr'],
-                betas=base_opt.defaults.get('betas', (0.95, 0.99)),
-                eps=base_opt.defaults.get('eps', 1e-8),
-                weight_decay=base_opt.defaults.get('weight_decay', 0.0),
-                gamma=base_opt.defaults.get('gamma', 0.025),
-                is_approx=base_opt.defaults.get('is_approx', True),
-                mars_type=base_opt.defaults.get('mars_type', 'mars-adamw'),
+                lr=base_opt.defaults["lr"],
+                betas=base_opt.defaults.get("betas", (0.95, 0.99)),
+                eps=base_opt.defaults.get("eps", 1e-8),
+                weight_decay=base_opt.defaults.get("weight_decay", 0.0),
+                gamma=base_opt.defaults.get("gamma", 0.025),
+                is_approx=base_opt.defaults.get("is_approx", True),
+                mars_type=base_opt.defaults.get("mars_type", "mars-adamw"),
             )
-        elif opt_class_name == 'Lamb':
+        elif opt_class_name == "Lamb":
             from .lamb import Lamb
+
             temp_opt = Lamb(
                 param_groups,
-                lr=base_opt.defaults['lr'],
-                betas=base_opt.defaults.get('betas', (0.9, 0.999)),
-                eps=base_opt.defaults.get('eps', 1e-6),
-                weight_decay=base_opt.defaults.get('weight_decay', 0.0),
-                bias_correction=base_opt.defaults.get('bias_correction', False),
+                lr=base_opt.defaults["lr"],
+                betas=base_opt.defaults.get("betas", (0.9, 0.999)),
+                eps=base_opt.defaults.get("eps", 1e-6),
+                weight_decay=base_opt.defaults.get("weight_decay", 0.0),
+                bias_correction=base_opt.defaults.get("bias_correction", False),
             )
-        elif opt_class_name == 'SophiaG':
+        elif opt_class_name == "SophiaG":
             from .sophia import SophiaG
+
             temp_opt = SophiaG(
                 param_groups,
-                lr=base_opt.defaults['lr'],
-                betas=base_opt.defaults.get('betas', (0.965, 0.99)),
-                rho=base_opt.defaults.get('rho', 0.04),
-                weight_decay=base_opt.defaults.get('weight_decay', 0.1),
+                lr=base_opt.defaults["lr"],
+                betas=base_opt.defaults.get("betas", (0.965, 0.99)),
+                rho=base_opt.defaults.get("rho", 0.04),
+                weight_decay=base_opt.defaults.get("weight_decay", 0.1),
             )
-        elif opt_class_name == 'SOAP':
+        elif opt_class_name == "SOAP":
             from .soap import SOAP
+
             temp_opt = SOAP(
                 param_groups,
-                lr=base_opt.defaults['lr'],
-                betas=base_opt.defaults.get('betas', (0.95, 0.95)),
-                shampoo_beta=base_opt.defaults.get('shampoo_beta', -1),
-                eps=base_opt.defaults.get('eps', 1e-8),
-                weight_decay=base_opt.defaults.get('weight_decay', 0.01),
-                precondition_frequency=base_opt.defaults.get('precondition_frequency', 10),
-                max_precond_dim=base_opt.defaults.get('max_precond_dim', 10000),
-                merge_dims=base_opt.defaults.get('merge_dims', False),
-                precondition_1d=base_opt.defaults.get('precondition_1d', False),
-                normalize_grads=base_opt.defaults.get('normalize_grads', False),
-                correct_bias=base_opt.defaults.get('correct_bias', True),
+                lr=base_opt.defaults["lr"],
+                betas=base_opt.defaults.get("betas", (0.95, 0.95)),
+                shampoo_beta=base_opt.defaults.get("shampoo_beta", -1),
+                eps=base_opt.defaults.get("eps", 1e-8),
+                weight_decay=base_opt.defaults.get("weight_decay", 0.01),
+                precondition_frequency=base_opt.defaults.get(
+                    "precondition_frequency", 10
+                ),
+                max_precond_dim=base_opt.defaults.get("max_precond_dim", 10000),
+                merge_dims=base_opt.defaults.get("merge_dims", False),
+                precondition_1d=base_opt.defaults.get("precondition_1d", False),
+                normalize_grads=base_opt.defaults.get("normalize_grads", False),
+                correct_bias=base_opt.defaults.get("correct_bias", True),
             )
-        elif opt_class_name == 'Prodigy':
+        elif opt_class_name == "Prodigy":
             from .prodigy import Prodigy
+
             temp_opt = Prodigy(
                 param_groups,
-                lr=base_opt.defaults['lr'],
-                betas=base_opt.defaults.get('betas', (0.9, 0.999)),
-                beta3=base_opt.defaults.get('beta3', None),
-                eps=base_opt.defaults.get('eps', 1e-8),
-                weight_decay=base_opt.defaults.get('weight_decay', 0.0),
-                decouple=base_opt.defaults.get('decouple', True),
-                use_bias_correction=base_opt.defaults.get('use_bias_correction', False),
-                safeguard_warmup=base_opt.defaults.get('safeguard_warmup', False),
+                lr=base_opt.defaults["lr"],
+                betas=base_opt.defaults.get("betas", (0.9, 0.999)),
+                beta3=base_opt.defaults.get("beta3", None),
+                eps=base_opt.defaults.get("eps", 1e-8),
+                weight_decay=base_opt.defaults.get("weight_decay", 0.0),
+                decouple=base_opt.defaults.get("decouple", True),
+                use_bias_correction=base_opt.defaults.get("use_bias_correction", False),
+                safeguard_warmup=base_opt.defaults.get("safeguard_warmup", False),
             )
-        elif opt_class_name == 'Adafactor':
+        elif opt_class_name == "Adafactor":
             from .adafactor import Adafactor
+
             temp_opt = Adafactor(
                 param_groups,
-                lr=base_opt.defaults.get('lr', 1e-3),
-                eps2=base_opt.defaults.get('eps2', (1e-30, 1e-3)),
-                clip_threshold=base_opt.defaults.get('clip_threshold', 1.0),
-                decay_rate=base_opt.defaults.get('decay_rate', -0.8),
-                beta1=base_opt.defaults.get('beta1', None),
-                weight_decay=base_opt.defaults.get('weight_decay', 0.0),
-                scale_parameter=base_opt.defaults.get('scale_parameter', True),
-                relative_step=base_opt.defaults.get('relative_step', True),
-                warmup_init=base_opt.defaults.get('warmup_init', False),
+                lr=base_opt.defaults.get("lr", 1e-3),
+                eps2=base_opt.defaults.get("eps2", (1e-30, 1e-3)),
+                clip_threshold=base_opt.defaults.get("clip_threshold", 1.0),
+                decay_rate=base_opt.defaults.get("decay_rate", -0.8),
+                beta1=base_opt.defaults.get("beta1", None),
+                weight_decay=base_opt.defaults.get("weight_decay", 0.0),
+                scale_parameter=base_opt.defaults.get("scale_parameter", True),
+                relative_step=base_opt.defaults.get("relative_step", True),
+                warmup_init=base_opt.defaults.get("warmup_init", False),
             )
-        elif opt_class_name == 'AdamWScheduleFree':
+        elif opt_class_name == "AdamWScheduleFree":
             from .schedulefree import AdamWScheduleFree
+
             temp_opt = AdamWScheduleFree(
                 param_groups,
-                lr=base_opt.defaults['lr'],
-                betas=base_opt.defaults.get('betas', (0.9, 0.999)),
-                eps=base_opt.defaults.get('eps', 1e-8),
-                weight_decay=base_opt.defaults.get('weight_decay', 0.0),
-                warmup_steps=base_opt.defaults.get('warmup_steps', 0),
-                r=base_opt.defaults.get('r', 0.0),
-                weight_lr_power=base_opt.defaults.get('weight_lr_power', 2.0),
+                lr=base_opt.defaults["lr"],
+                betas=base_opt.defaults.get("betas", (0.9, 0.999)),
+                eps=base_opt.defaults.get("eps", 1e-8),
+                weight_decay=base_opt.defaults.get("weight_decay", 0.0),
+                warmup_steps=base_opt.defaults.get("warmup_steps", 0),
+                r=base_opt.defaults.get("r", 0.0),
+                weight_lr_power=base_opt.defaults.get("weight_lr_power", 2.0),
             )
-        elif opt_class_name == 'SGDScheduleFree':
+        elif opt_class_name == "SGDScheduleFree":
             from .schedulefree import SGDScheduleFree
+
             temp_opt = SGDScheduleFree(
                 param_groups,
-                lr=base_opt.defaults['lr'],
-                momentum=base_opt.defaults.get('momentum', 0.9),
-                weight_decay=base_opt.defaults.get('weight_decay', 0.0),
-                warmup_steps=base_opt.defaults.get('warmup_steps', 0),
-                r=base_opt.defaults.get('r', 0.0),
-                weight_lr_power=base_opt.defaults.get('weight_lr_power', 2.0),
+                lr=base_opt.defaults["lr"],
+                momentum=base_opt.defaults.get("momentum", 0.9),
+                weight_decay=base_opt.defaults.get("weight_decay", 0.0),
+                warmup_steps=base_opt.defaults.get("warmup_steps", 0),
+                r=base_opt.defaults.get("r", 0.0),
+                weight_lr_power=base_opt.defaults.get("weight_lr_power", 2.0),
             )
-        elif opt_class_name in ('Muon', 'DMuon'):
+        elif opt_class_name in ("Muon", "DMuon"):
             # Muon has complex internal structure, use generic instantiation
-            print(f"[UpdateNoiseRecorder] Warning: '{opt_class_name}' has complex structure, "
-                  f"attempting generic instantiation")
+            print(
+                f"[UpdateNoiseRecorder] Warning: '{opt_class_name}' has complex structure, "
+                f"attempting generic instantiation"
+            )
             temp_opt = opt_class(param_groups, **base_opt.defaults)
-        elif opt_class_name in ('Scion', 'MomentumScion'):
+        elif opt_class_name in ("Scion", "MomentumScion"):
             # Scion also has complex structure with norm types
-            print(f"[UpdateNoiseRecorder] Warning: '{opt_class_name}' has complex structure, "
-                  f"attempting generic instantiation")
+            print(
+                f"[UpdateNoiseRecorder] Warning: '{opt_class_name}' has complex structure, "
+                f"attempting generic instantiation"
+            )
             temp_opt = opt_class(param_groups, **base_opt.defaults)
         else:
             # Fallback: try to instantiate with defaults
             # This may not work for all optimizers but covers common cases
-            print(f"[UpdateNoiseRecorder] Warning: Unknown optimizer type '{opt_class_name}', "
-                  f"attempting generic instantiation")
+            print(
+                f"[UpdateNoiseRecorder] Warning: Unknown optimizer type '{opt_class_name}', "
+                f"attempting generic instantiation"
+            )
             temp_opt = opt_class(param_groups, **base_opt.defaults)
 
         # Copy momentum buffers from real optimizer to temp optimizer
@@ -1277,6 +1391,7 @@ class UpdateNoiseRecorder:
         # If the original optimizer was wrapped with SPECTRA, wrap the temp optimizer too
         if is_spectral and spectral_config is not None:
             from .spectra import SPECTRA
+
             temp_opt = SPECTRA(
                 temp_opt,
                 post_process=spectral_config["post_process"],
@@ -1415,8 +1530,10 @@ class UpdateNoiseRecorder:
 
         # Store X_k for target layers before step
         target_params = self.get_target_params(model)
-        X_k = {name: saved_weights[self.layer_names[name]].clone()
-               for name in target_params.keys()}
+        X_k = {
+            name: saved_weights[self.layer_names[name]].clone()
+            for name in target_params.keys()
+        }
 
         temp_optimizer.step()
 
@@ -1443,8 +1560,8 @@ class UpdateNoiseRecorder:
         Perform update noise structure analysis at the current training step.
 
         This method uses a TEMPORARY optimizer for all analysis, keeping the real
-        training optimizer completely untouched. This is easier to be implemented for 
-        fused optimizers (like fused AdamW) that have internal CUDA kernel state not 
+        training optimizer completely untouched. This is easier to be implemented for
+        fused optimizers (like fused AdamW) that have internal CUDA kernel state not
         captured bystate_dict(), which would be corrupted by save/restore operations.
 
         1. Save current model weights
@@ -1452,7 +1569,7 @@ class UpdateNoiseRecorder:
         3. Compute "true" update U using large-batch gradient + temp optimizer step
         4. For each noise sample, compute stochastic update u, then N = u - U
         5. Record N's singular values and subspace alignment with U
-        6. Restore model weights 
+        6. Restore model weights
 
         Args:
             model: The model (weights will be temporarily modified but restored)
@@ -1464,7 +1581,9 @@ class UpdateNoiseRecorder:
         if not self.should_record(step):
             return
 
-        print(f"\n[UpdateNoiseRecorder] Step {step}: Starting update noise structure analysis...")
+        print(
+            f"\n[UpdateNoiseRecorder] Step {step}: Starting update noise structure analysis..."
+        )
 
         # Save current training state
         was_training = model.training
@@ -1489,13 +1608,19 @@ class UpdateNoiseRecorder:
         try:
             # STEP 1: Compute true update U
             num_batches = self.num_samples // self.cfg.batch_size
-            print(f"[UpdateNoiseRecorder] Computing true update U over {self.num_samples} samples ({num_batches} batches)...")
+            print(
+                f"[UpdateNoiseRecorder] Computing true update U over {self.num_samples} samples ({num_batches} batches)..."
+            )
             self.true_grad_reader.set_step(0)
 
             true_updates = self.compute_update(
-                model, temp_optimizer, type_ctx, device,
-                self.true_grad_reader, num_batches,
-                saved_weights
+                model,
+                temp_optimizer,
+                type_ctx,
+                device,
+                self.true_grad_reader,
+                num_batches,
+                saved_weights,
             )
 
             # Initialize record for this step
@@ -1511,12 +1636,14 @@ class UpdateNoiseRecorder:
                     "num_repeats": self.num_repeats,
                     "learning_rate": lr,
                     "weight_decay": weight_decay,
-                }
+                },
             }
 
             # STEP 2: For each layer, compute SVD of U and analyze noise
             for layer_name, U in true_updates.items():
-                print(f"[UpdateNoiseRecorder] Processing layer: {layer_name} (shape={tuple(U.shape)})")
+                print(
+                    f"[UpdateNoiseRecorder] Processing layer: {layer_name} (shape={tuple(U.shape)})"
+                )
 
                 # Compute full SVD of U to get top-k singular vectors
                 sv_U, U_k, V_k = self.compute_full_svd_with_top_k(U, self.top_k)
@@ -1532,7 +1659,9 @@ class UpdateNoiseRecorder:
                     "max_noise_spectral_norm": 0.0,
                 }
 
-                print(f"  [U] ||U||_2 = {sv_U[0].item():.4e}, condition = {sv_U[0].item()/sv_U[-1].item():.2e}")
+                print(
+                    f"  [U] ||U||_2 = {sv_U[0].item():.4e}, condition = {sv_U[0].item()/sv_U[-1].item():.2e}"
+                )
 
                 # STEP 3: Sample stochastic updates and analyze noise
                 max_noise_sv = 0.0
@@ -1540,13 +1669,19 @@ class UpdateNoiseRecorder:
                     # IMPORTANT: Create a fresh temp optimizer for each noise sample
                     # This is necessary because optimizer.step() modifies the momentum state,
                     # and we need each stochastic update to start from the same initial state
-                    temp_optimizer_stochastic = self.create_temp_optimizer(model, optimizer)
+                    temp_optimizer_stochastic = self.create_temp_optimizer(
+                        model, optimizer
+                    )
 
                     # Compute stochastic update (single small batch)
                     stochastic_updates = self.compute_update(
-                        model, temp_optimizer_stochastic, type_ctx, device,
-                        self.stochastic_reader, 1,  # Single batch
-                        saved_weights
+                        model,
+                        temp_optimizer_stochastic,
+                        type_ctx,
+                        device,
+                        self.stochastic_reader,
+                        1,  # Single batch
+                        saved_weights,
                     )
 
                     # Discard temp optimizer for this sample
@@ -1569,8 +1704,12 @@ class UpdateNoiseRecorder:
                         max_noise_sv = top_sv_N
 
                     # Compute subspace distances between N's and U's principal subspaces
-                    spec_dist_left, chord_dist_left = self.compute_subspace_distance(U_N, U_k)
-                    spec_dist_right, chord_dist_right = self.compute_subspace_distance(V_N, V_k)
+                    spec_dist_left, chord_dist_left = self.compute_subspace_distance(
+                        U_N, U_k
+                    )
+                    spec_dist_right, chord_dist_right = self.compute_subspace_distance(
+                        V_N, V_k
+                    )
                     spectral_dist = max(spec_dist_left, spec_dist_right)
                     chordal_dist = max(chord_dist_left, chord_dist_right)
 
@@ -1582,21 +1721,38 @@ class UpdateNoiseRecorder:
                     layer_record["noise_samples"].append(noise_sample)
 
                     if (repeat_idx + 1) % 5 == 0 or repeat_idx == 0:
-                        print(f"  [Repeat {repeat_idx+1}/{self.num_repeats}] ||N||_2 = {top_sv_N:.4e}, "
-                              f"spectral={spectral_dist:.4f}, chordal={chordal_dist:.4f}")
+                        print(
+                            f"  [Repeat {repeat_idx+1}/{self.num_repeats}] ||N||_2 = {top_sv_N:.4e}, "
+                            f"spectral={spectral_dist:.4f}, chordal={chordal_dist:.4f}"
+                        )
 
                 layer_record["max_noise_spectral_norm"] = max_noise_sv
                 step_record["layers"][layer_name] = layer_record
 
                 # Print summary for this layer
-                all_top_sv = [ns["top_k_singular_values"][0].item() for ns in layer_record["noise_samples"]]
-                all_spectral = [ns["spectral_distance"] for ns in layer_record["noise_samples"]]
-                all_chordal = [ns["chordal_distance"] for ns in layer_record["noise_samples"]]
-                print(f"  [Summary] max ||N||_2 = {max_noise_sv:.4e} (vs ||U||_2 = {sv_U[0].item():.4e}, "
-                      f"ratio = {max_noise_sv/sv_U[0].item():.2f})")
-                print(f"  [Summary] ||N||_2: mean={np.mean(all_top_sv):.4e}, std={np.std(all_top_sv):.4e}")
-                print(f"  [Summary] spectral_dist: mean={np.mean(all_spectral):.4f}, std={np.std(all_spectral):.4f}")
-                print(f"  [Summary] chordal_dist: mean={np.mean(all_chordal):.4f}, std={np.std(all_chordal):.4f}")
+                all_top_sv = [
+                    ns["top_k_singular_values"][0].item()
+                    for ns in layer_record["noise_samples"]
+                ]
+                all_spectral = [
+                    ns["spectral_distance"] for ns in layer_record["noise_samples"]
+                ]
+                all_chordal = [
+                    ns["chordal_distance"] for ns in layer_record["noise_samples"]
+                ]
+                print(
+                    f"  [Summary] max ||N||_2 = {max_noise_sv:.4e} (vs ||U||_2 = {sv_U[0].item():.4e}, "
+                    f"ratio = {max_noise_sv/sv_U[0].item():.2f})"
+                )
+                print(
+                    f"  [Summary] ||N||_2: mean={np.mean(all_top_sv):.4e}, std={np.std(all_top_sv):.4e}"
+                )
+                print(
+                    f"  [Summary] spectral_dist: mean={np.mean(all_spectral):.4f}, std={np.std(all_spectral):.4f}"
+                )
+                print(
+                    f"  [Summary] chordal_dist: mean={np.mean(all_chordal):.4f}, std={np.std(all_chordal):.4f}"
+                )
 
         finally:
             # STEP 4: Final cleanup - restore weights only (optimizer was never touched!)
@@ -1626,7 +1782,9 @@ class UpdateNoiseRecorder:
             # Save to disk
             self.save_records(step)
 
-        print(f"[UpdateNoiseRecorder] Step {step}: Update noise structure analysis complete.\n")
+        print(
+            f"[UpdateNoiseRecorder] Step {step}: Update noise structure analysis complete.\n"
+        )
 
     def save_records(self, step: int):
         """Save update noise records for a given step to disk."""
@@ -1638,7 +1796,9 @@ class UpdateNoiseRecorder:
 
         save_path = self.save_dir / f"update_noise_step_{step}.pt"
         torch.save(self.records[step], save_path)
-        print(f"[UpdateNoiseRecorder] Saved update noise records for step {step} to {save_path}")
+        print(
+            f"[UpdateNoiseRecorder] Saved update noise records for step {step} to {save_path}"
+        )
 
     def save_all_records(self):
         """Save all recorded update noise data to disk."""

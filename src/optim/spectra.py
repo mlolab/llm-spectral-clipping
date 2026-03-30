@@ -1,6 +1,7 @@
 import math
+from typing import Callable, Literal, Optional
+
 import torch
-from typing import Optional, Callable, Literal
 
 from .post_process import clip_sigvals, normalize_sigvals
 
@@ -76,8 +77,8 @@ class SPECTRA(torch.optim.Optimizer):
         # We override param_groups and state properties to delegate to base_optimizer
         # This is needed so that isinstance(self, Optimizer) returns True for schedulers
         self.defaults = base_optimizer.defaults
-        self._param_groups = base_optimizer.param_groups
-        self._state = base_optimizer.state
+        # self._param_groups = base_optimizer.param_groups
+        # self._state = base_optimizer.state
 
         # Build mapping from param to (group_idx, param_idx) for efficient lookup
         self._param_to_group = {}
@@ -146,9 +147,9 @@ class SPECTRA(torch.optim.Optimizer):
             factor = final + (1 - final) * (1 + math.cos(math.pi * progress)) * 0.5
         elif self.clip_decay_type == "exp":
             # Exponential decay: factor = final^progress if final > 0, else linear fallback
-            factor = (final ** progress) if final > 0 else (1 - progress)
+            factor = (final**progress) if final > 0 else (1 - progress)
         elif self.clip_decay_type == "square":
-            factor = final + (1 - final) * (1 - progress ** 2)
+            factor = final + (1 - final) * (1 - progress**2)
         else:
             # Fallback to constant
             factor = 1.0
@@ -203,7 +204,7 @@ class SPECTRA(torch.optim.Optimizer):
 
             if U_k_processed.dim() >= 2:
                 # Scale for rectangular matrices (like Muon)
-                alpha = max(1, U_k_processed.size(-2) / U_k_processed.size(-1))**0.5
+                alpha = max(1, U_k_processed.size(-2) / U_k_processed.size(-1)) ** 0.5
             else:
                 alpha = 1.0
 
@@ -221,22 +222,20 @@ class SPECTRA(torch.optim.Optimizer):
 
     @property
     def param_groups(self):
-        return self._param_groups
+        return self.base_optimizer.param_groups
 
     @param_groups.setter
     def param_groups(self, value):
         """Set parameter groups (delegates to base optimizer)."""
-        self._param_groups = value
         self.base_optimizer.param_groups = value
 
     @property
     def state(self):
-        return self._state
+        return self.base_optimizer.state
 
     @state.setter
     def state(self, value):
         """Set state (delegates to base optimizer)."""
-        self._state = value
         self.base_optimizer.state = value
 
     def state_dict(self):

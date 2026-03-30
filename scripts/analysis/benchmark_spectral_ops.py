@@ -7,19 +7,20 @@ Usage:
     python scripts/analysis/benchmark_spectral_ops.py --output_dir ./plots
 """
 import argparse
-import sys
 import os
+import sys
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
-import torch
 import time
-import numpy as np
-import matplotlib.pyplot as plt
 from collections import defaultdict
 
-from src.optim.post_process import clip_sigvals, _normalize_sigvals_matrix
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+
+from src.optim.post_process import _normalize_sigvals_matrix, clip_sigvals
 
 
 def benchmark_function(fn, *args, warmup=20, repeats=100, **kwargs):
@@ -57,13 +58,17 @@ def benchmark_function(fn, *args, warmup=20, repeats=100, **kwargs):
 def print_table(results, sizes, ns_iters):
     """Print results as a formatted table."""
     print("\n" + "=" * 100)
-    print("MICROBENCHMARK RESULTS: soft spectral clipping (SSC) vs orthogonalization (Muon)")
+    print(
+        "MICROBENCHMARK RESULTS: soft spectral clipping (SSC) vs orthogonalization (Muon)"
+    )
     print("=" * 100)
 
     for m, n, desc in sizes:
         print(f"\n{desc}: {m} x {n}")
         print("-" * 80)
-        print(f"{'ns_iter':>8} | {'soft spectral clipping (ms)':>25} | {'orthogonalization (ms)':>25} | {'ratio':>10}")
+        print(
+            f"{'ns_iter':>8} | {'soft spectral clipping (ms)':>25} | {'orthogonalization (ms)':>25} | {'ratio':>10}"
+        )
         print("-" * 80)
 
         for ns_iter in ns_iters:
@@ -153,8 +158,20 @@ def plot_results(results, sizes, ns_iters, output_dir):
     x = np.arange(len(labels))
     width = 0.35
 
-    bars1 = ax.bar(x - width / 2, clip_times, width, label="soft spectral clipping (SSC)", color="#c842cb")
-    bars2 = ax.bar(x + width / 2, norm_times, width, label="orthogonalization (Muon)", color="#6246a3")
+    bars1 = ax.bar(
+        x - width / 2,
+        clip_times,
+        width,
+        label="soft spectral clipping (SSC)",
+        color="#c842cb",
+    )
+    bars2 = ax.bar(
+        x + width / 2,
+        norm_times,
+        width,
+        label="orthogonalization (Muon)",
+        color="#6246a3",
+    )
 
     ax.set_xlabel("Matrix Size")
     ax.set_ylabel("Time (ms)")
@@ -195,8 +212,22 @@ def plot_results(results, sizes, ns_iters, output_dir):
         results["norm"][(m, n, ns_iter_fixed)]["mean"] for m, n, _ in sorted_sizes
     ]
 
-    ax.plot(total_elements, clip_times, "o-", label="soft spectral clipping (SSC)", color="#c842cb", markersize=8)
-    ax.plot(total_elements, norm_times, "s-", label="orthogonalization (Muon)", color="#6246a3", markersize=8)
+    ax.plot(
+        total_elements,
+        clip_times,
+        "o-",
+        label="soft spectral clipping (SSC)",
+        color="#c842cb",
+        markersize=8,
+    )
+    ax.plot(
+        total_elements,
+        norm_times,
+        "s-",
+        label="orthogonalization (Muon)",
+        color="#6246a3",
+        markersize=8,
+    )
 
     ax.set_xlabel("Matrix Size (millions of elements)")
     ax.set_ylabel("Time (ms)")
@@ -281,7 +312,9 @@ def main():
             )
             results["norm"][(m, n, ns_iter)] = norm_stats
 
-            print(f"  ns_iter={ns_iter}: clip={clip_stats['mean']:.3f}ms, norm={norm_stats['mean']:.3f}ms")
+            print(
+                f"  ns_iter={ns_iter}: clip={clip_stats['mean']:.3f}ms, norm={norm_stats['mean']:.3f}ms"
+            )
 
     # Print table
     print_table(results, sizes, ns_iters)
