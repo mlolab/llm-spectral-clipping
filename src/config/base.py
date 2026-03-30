@@ -18,7 +18,7 @@ def parse_args(base_parser, args, namespace):
         nargs="+",
         type=str,
         default=[],
-        help="Additional argument names to ignore when generating experiment name (appended to default ignore_args)"
+        help="Additional argument names to ignore when generating experiment name (appended to default ignore_args)",
     )
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--data_seed", default=1337, type=int)
@@ -63,7 +63,7 @@ def parse_args(base_parser, args, namespace):
     parser.add_argument(
         "--log_step_timing",
         action="store_true",
-        help="Log detailed per-step timing breakdown (forward, backward, spectral, optimizer)"
+        help="Log detailed per-step timing breakdown (forward, backward, spectral, optimizer)",
     )
 
     # Schedule
@@ -273,8 +273,9 @@ def parse_args(base_parser, args, namespace):
         "--data_in_ram", action="store_true"
     )  # force the data to RAM, mostly useless except for openwebtext2
     parser.add_argument(
-        "--shared_memory", action="store_true",
-        help="Use shared memory for data loading (only rank 0 loads, others attach)"
+        "--shared_memory",
+        action="store_true",
+        help="Use shared memory for data loading (only rank 0 loads, others attach)",
     )
 
     # Model params
@@ -361,71 +362,73 @@ def parse_args(base_parser, args, namespace):
 
     # SVD recording for spectral analysis
     parser.add_argument(
-        "--record_svd", action="store_true", help="Enable recording singular values of gradients and updates"
+        "--record_svd",
+        action="store_true",
+        help="Enable recording singular values of gradients and updates",
     )
     parser.add_argument(
         "--svd_record_steps",
         nargs="+",
         type=float,
         default=[0.0, 0.05, 0.5, 0.99],
-        help="Fractions of total iterations at which to record SVD (e.g., 0.0 0.05 0.5 0.99)"
+        help="Fractions of total iterations at which to record SVD (e.g., 0.0 0.05 0.5 0.99)",
     )
     parser.add_argument(
         "--svd_layers",
         nargs="+",
         type=str,
         default=["embedding", "early", "middle", "late"],
-        help="Which layer positions to record: embedding, early, middle, late"
+        help="Which layer positions to record: embedding, early, middle, late",
     )
     parser.add_argument(
         "--svd_save_dir",
         type=str,
         default=None,
-        help="Directory to save SVD recordings (defaults to exp_dir/svd_records)"
+        help="Directory to save SVD recordings (defaults to exp_dir/svd_records)",
     )
 
     # Noise structure analysis (extends SVD recording)
     parser.add_argument(
         "--record_noise_structure",
         action="store_true",
-        help="Enable noise structure analysis at SVD recording steps"
+        help="Enable noise structure analysis at SVD recording steps",
     )
     parser.add_argument(
         "--noise_num_samples",
         type=int,
         default=4096,
-        help="Number of samples for estimating true gradient G"
+        help="Number of samples for estimating true gradient G",
     )
     parser.add_argument(
         "--noise_top_k",
         type=int,
         default=5,
-        help="Number of top singular vectors to store and analyze"
+        help="Number of top singular vectors to store and analyze",
     )
     parser.add_argument(
         "--noise_num_repeats",
         type=int,
         default=20,
-        help="Number of noise samples to analyze per recording step"
+        help="Number of noise samples to analyze per recording step",
     )
     parser.add_argument(
         "--noise_batch_size",
         type=int,
         default=1,
-        help="Batch size for stochastic gradient samples (default: 1)"
+        help="Batch size for stochastic gradient samples (default: 1)",
     )
     parser.add_argument(
         "--noise_data_seed",
         type=int,
         default=9999,
-        help="Seed for noise analysis DataReader (should differ from data_seed)"
+        help="Seed for noise analysis DataReader (should differ from data_seed)",
     )
 
     # Update noise structure analysis (analyzes optimizer update noise)
     parser.add_argument(
         "--record_update_noise",
         action="store_true",
-        help="Enable update noise structure analysis (analyzes optimizer update noise instead of gradient noise)"
+        help="Enable update noise structure analysis (analyzes optimizer update noise instead of gradient noise)",
     )
 
     # Spectral post-processing for optimizer updates
@@ -434,26 +437,26 @@ def parse_args(base_parser, args, namespace):
         type=str,
         default="none",
         choices=["none", "clip", "normalize"],
-        help="Apply spectral post-processing to optimizer updates: none, clip, or normalize"
+        help="Apply spectral post-processing to optimizer updates: none, clip, or normalize",
     )
     parser.add_argument(
         "--spectral_clip_c",
         type=float,
         default=10.0,
-        help="Clipping threshold for spectral clipping (only used when spectral_post_process=clip)"
+        help="Clipping threshold for spectral clipping (only used when spectral_post_process=clip)",
     )
     parser.add_argument(
         "--spectral_ns_steps",
         type=int,
         default=10,
-        help="Number of Newton-Schulz iterations for spectral post-processing"
+        help="Number of Newton-Schulz iterations for spectral post-processing",
     )
     parser.add_argument(
         "--spectral_apply_to",
         type=str,
         default="all",
         choices=["2d", "all"],
-        help="Which parameters to apply spectral post-processing to: 2d (matrices only) or all"
+        help="Which parameters to apply spectral post-processing to: 2d (matrices only) or all",
     )
     parser.add_argument(
         "--disable_dynamic_clip",
@@ -465,19 +468,19 @@ def parse_args(base_parser, args, namespace):
         type=str,
         default="constant",
         choices=["constant", "linear", "sqrt", "cosine", "exp", "square"],
-        help="Decay type for clipping threshold during WSD decay phase: constant (default), linear, sqrt, cosine, exp, square"
+        help="Decay type for clipping threshold during WSD decay phase: constant (default), linear, sqrt, cosine, exp, square",
     )
     parser.add_argument(
         "--clip_decay_fract",
         type=float,
         default=None,
-        help="Fraction of iterations for clip decay phase. If None, uses wsd_fract_decay."
+        help="Fraction of iterations for clip decay phase. If None, uses wsd_fract_decay.",
     )
     parser.add_argument(
         "--clip_final_scale",
         type=float,
         default=0.0,
-        help="Final clipping threshold scale (c decays from clip_c to clip_c * clip_final_scale). Default: 0.0"
+        help="Final clipping threshold scale (c decays from clip_c to clip_c * clip_final_scale). Default: 0.0",
     )
 
     return parser.parse_args(args, namespace)

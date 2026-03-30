@@ -9,13 +9,15 @@ import wandb
 import yaml
 
 from logger.logger import DynamicsLogger
+from optim.svd_recorder import (create_noise_recorder, create_svd_recorder,
+                                create_update_noise_recorder)
 from optim.weight_averaging import (ExponentialWeightAverager, WeightAverager,
                                     eval_ewa, eval_wa)
-from optim.svd_recorder import create_svd_recorder, create_noise_recorder, create_update_noise_recorder
 
-from .utils import (eval, get_batch, get_parameter_norms, get_sum_of_linf_norms,
-                    load_checkpoint, load_worker_state, log_prodigy_lr,
-                    save_checkpoint, save_worker_state, visualize_routing)
+from .utils import (eval, get_batch, get_parameter_norms,
+                    get_sum_of_linf_norms, load_checkpoint, load_worker_state,
+                    log_prodigy_lr, save_checkpoint, save_worker_state,
+                    visualize_routing)
 
 
 def train(
@@ -116,16 +118,28 @@ def train(
     noise_recorder = None
     if distributed_backend.is_master_process():
         # Get data source for the noise recorder's independent DataReader
-        data_src = train_reader.data if train_reader.data is not None else train_reader.data_path
-        noise_recorder = create_noise_recorder(not_compiled_model, cfg, data_src, exp_dir)
+        data_src = (
+            train_reader.data
+            if train_reader.data is not None
+            else train_reader.data_path
+        )
+        noise_recorder = create_noise_recorder(
+            not_compiled_model, cfg, data_src, exp_dir
+        )
 
     # Initialize update noise recorder for analyzing optimizer update noise
     # This computes the "true" update U by doing optimizer.step() with large-batch gradient,
     # then analyzes how stochastic update noise N = u - U relates to U
     update_noise_recorder = None
     if distributed_backend.is_master_process():
-        data_src = train_reader.data if train_reader.data is not None else train_reader.data_path
-        update_noise_recorder = create_update_noise_recorder(not_compiled_model, opt, cfg, data_src, exp_dir)
+        data_src = (
+            train_reader.data
+            if train_reader.data is not None
+            else train_reader.data_path
+        )
+        update_noise_recorder = create_update_noise_recorder(
+            not_compiled_model, opt, cfg, data_src, exp_dir
+        )
 
     train_reader.set_step(substep)
     stats = {"train_loss": [], "val_loss": [], "val_pp": [], "val_acc": []}
@@ -391,30 +405,39 @@ def train(
             raw_model = not_compiled_model
             if isinstance(model, torch.nn.parallel.DistributedDataParallel):
                 raw_model = model.module
-            noise_recorder.record_noise_structure(raw_model, curr_iter + 1, type_ctx, cfg.device)
+            noise_recorder.record_noise_structure(
+                raw_model, curr_iter + 1, type_ctx, cfg.device
+            )
 
         # Record update noise structure (analyzes optimizer update noise)
         # This computes true update U from large-batch gradient, then analyzes stochastic update noise
         # IMPORTANT: This only runs on master (rank 0), but modifies optimizer state.
         # We need to sync optimizer state across all ranks after recording.
         should_record_update_noise = (
-            update_noise_recorder is not None and
-            update_noise_recorder.should_record(curr_iter + 1)
+            update_noise_recorder is not None
+            and update_noise_recorder.should_record(curr_iter + 1)
         )
         if should_record_update_noise:
             raw_model = not_compiled_model
             if isinstance(model, torch.nn.parallel.DistributedDataParallel):
                 raw_model = model.module
-            update_noise_recorder.record_update_noise_structure(raw_model, opt, curr_iter + 1, type_ctx, cfg.device)
+            update_noise_recorder.record_update_noise_structure(
+                raw_model, opt, curr_iter + 1, type_ctx, cfg.device
+            )
 
         # Sync model weights across all ranks after update noise recording
         # This is only needed for weights since the optimizer is never modified
         # (we use a temporary optimizer for recording that is discarded)
-        if cfg.distributed_backend == "nccl" and getattr(cfg, "record_update_noise", False):
+        if cfg.distributed_backend == "nccl" and getattr(
+            cfg, "record_update_noise", False
+        ):
             import torch.distributed as dist
+
             # Check if this step was a recording step (use same logic as recorder)
             svd_fractions = getattr(cfg, "svd_record_steps", [0.0, 0.05, 0.5, 0.99])
-            record_steps = set(max(1, int(frac * cfg.iterations)) for frac in svd_fractions)
+            record_steps = set(
+                max(1, int(frac * cfg.iterations)) for frac in svd_fractions
+            )
             if (curr_iter + 1) in record_steps:
                 # Ensure all ranks reach this point before syncing
                 dist.barrier()
@@ -425,7 +448,9 @@ def train(
                     dist.broadcast(param.data, src=0)
 
                 if dist.get_rank() == 0:
-                    print(f"[UpdateNoiseRecorder] Synced weights across all {dist.get_world_size()} ranks")
+                    print(
+                        f"[UpdateNoiseRecorder] Synced weights across all {dist.get_world_size()} ranks"
+                    )
 
         if cfg.weight_average:
             weight_averager.step(
@@ -442,7 +467,16 @@ def train(
             timing_stats["backward"].append(t_backward_total * 1000)
             timing_stats["spectral"].append(t_spectral_total * 1000)
             timing_stats["optimizer"].append(t_optimizer_total * 1000)
-            t_other = dt * 1000 - (t_forward_total + t_backward_total + t_spectral_total + t_optimizer_total) * 1000
+            t_other = (
+                dt * 1000
+                - (
+                    t_forward_total
+                    + t_backward_total
+                    + t_spectral_total
+                    + t_optimizer_total
+                )
+                * 1000
+            )
             timing_stats["other"].append(t_other)
 
         curr_iter += 1
@@ -490,8 +524,12 @@ def train(
 
                 if cfg.log_parameter_norms:
                     raw_model = distributed_backend.get_raw_model(model)
-                    total_norm = get_parameter_norms(raw_model, order=cfg.norm_order, only_2d=False)
-                    matrix_norm = get_parameter_norms(raw_model, order=cfg.norm_order, only_2d=True)
+                    total_norm = get_parameter_norms(
+                        raw_model, order=cfg.norm_order, only_2d=False
+                    )
+                    matrix_norm = get_parameter_norms(
+                        raw_model, order=cfg.norm_order, only_2d=True
+                    )
                     wandb_logs["model_norm/total"] = total_norm
                     wandb_logs["model_norm/matrices"] = matrix_norm
                     # Sum of L∞-norms
@@ -508,7 +546,13 @@ def train(
                     t_spectral_avg = sum(timing_stats["spectral"]) / n
                     t_optimizer_avg = sum(timing_stats["optimizer"]) / n
                     t_other_avg = sum(timing_stats["other"]) / n
-                    t_total_avg = t_forward_avg + t_backward_avg + t_spectral_avg + t_optimizer_avg + t_other_avg
+                    t_total_avg = (
+                        t_forward_avg
+                        + t_backward_avg
+                        + t_spectral_avg
+                        + t_optimizer_avg
+                        + t_other_avg
+                    )
 
                     wandb_logs["timing/forward_ms"] = t_forward_avg
                     wandb_logs["timing/backward_ms"] = t_backward_avg
@@ -520,9 +564,15 @@ def train(
                     # Compute fractions
                     if t_total_avg > 0:
                         wandb_logs["timing/forward_frac"] = t_forward_avg / t_total_avg
-                        wandb_logs["timing/backward_frac"] = t_backward_avg / t_total_avg
-                        wandb_logs["timing/spectral_frac"] = t_spectral_avg / t_total_avg
-                        wandb_logs["timing/optimizer_frac"] = t_optimizer_avg / t_total_avg
+                        wandb_logs["timing/backward_frac"] = (
+                            t_backward_avg / t_total_avg
+                        )
+                        wandb_logs["timing/spectral_frac"] = (
+                            t_spectral_avg / t_total_avg
+                        )
+                        wandb_logs["timing/optimizer_frac"] = (
+                            t_optimizer_avg / t_total_avg
+                        )
                         wandb_logs["timing/other_frac"] = t_other_avg / t_total_avg
 
                     # Clear timing stats for next interval

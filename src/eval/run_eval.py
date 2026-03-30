@@ -35,8 +35,8 @@ from pathlib import Path
 # Add src/ to path so imports work
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import torch
 import lm_eval
+import torch
 from lm_eval import evaluator
 
 from eval.lm_eval_wrapper import CustomLM
@@ -137,20 +137,37 @@ def main():
     parser = argparse.ArgumentParser(description="Downstream task evaluation")
 
     # Checkpoint source (one of these is required)
-    parser.add_argument("--checkpoint_path", type=str, default=None,
-                        help="Path to a single checkpoint (main.pt)")
-    parser.add_argument("--checkpoint_dir", type=str, default=None,
-                        help="Directory containing iteration subdirs with main.pt")
-    parser.add_argument("--iterations", type=str, default=None,
-                        help="Comma-separated iteration numbers (used with --checkpoint_dir)")
+    parser.add_argument(
+        "--checkpoint_path",
+        type=str,
+        default=None,
+        help="Path to a single checkpoint (main.pt)",
+    )
+    parser.add_argument(
+        "--checkpoint_dir",
+        type=str,
+        default=None,
+        help="Directory containing iteration subdirs with main.pt",
+    )
+    parser.add_argument(
+        "--iterations",
+        type=str,
+        default=None,
+        help="Comma-separated iteration numbers (used with --checkpoint_dir)",
+    )
 
     # Config source
-    parser.add_argument("--config_path", type=str, default=None,
-                        help="Path to summary.json or config.json")
+    parser.add_argument(
+        "--config_path",
+        type=str,
+        default=None,
+        help="Path to summary.json or config.json",
+    )
 
     # Fallback model args (when no config file available)
-    parser.add_argument("--model_type", type=str, default="llama",
-                        choices=["base", "llama"])
+    parser.add_argument(
+        "--model_type", type=str, default="llama", choices=["base", "llama"]
+    )
     parser.add_argument("--n_embd", type=int, default=768)
     parser.add_argument("--n_head", type=int, default=12)
     parser.add_argument("--n_layer", type=int, default=12)
@@ -158,17 +175,25 @@ def main():
     parser.add_argument("--vocab_size", type=int, default=50304)
 
     # Eval params
-    parser.add_argument("--tasks", type=str,
-                        default="hellaswag,arc_easy,arc_challenge,piqa,winogrande,boolq,lambada_openai",
-                        help="Comma-separated lm-eval task names")
+    parser.add_argument(
+        "--tasks",
+        type=str,
+        default="hellaswag,arc_easy,arc_challenge,piqa,winogrande,boolq,lambada_openai",
+        help="Comma-separated lm-eval task names",
+    )
     parser.add_argument("--num_fewshot", type=int, default=0)
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--device", type=str, default="cuda:0")
-    parser.add_argument("--dtype", type=str, default="bfloat16",
-                        choices=["float32", "float16", "bfloat16"])
+    parser.add_argument(
+        "--dtype",
+        type=str,
+        default="bfloat16",
+        choices=["float32", "float16", "bfloat16"],
+    )
     parser.add_argument("--output_dir", type=str, default="./eval_results/")
-    parser.add_argument("--log_samples", action="store_true",
-                        help="Log individual sample predictions")
+    parser.add_argument(
+        "--log_samples", action="store_true", help="Log individual sample predictions"
+    )
 
     args = parser.parse_args()
 
@@ -270,7 +295,9 @@ def main():
         # Print MMLU average
         if mmlu_scores:
             mmlu_avg = sum(mmlu_scores) / len(mmlu_scores)
-            print(f"  {'mmlu (avg)':20s}: acc={mmlu_avg:.4f}  ({len(mmlu_scores)} subjects)")
+            print(
+                f"  {'mmlu (avg)':20s}: acc={mmlu_avg:.4f}  ({len(mmlu_scores)} subjects)"
+            )
             all_scores.append(mmlu_avg)
 
         # Print overall average

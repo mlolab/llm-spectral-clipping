@@ -18,8 +18,8 @@ import numpy as np
 import torch
 
 # Disable scientific notation globally
-plt.rcParams['axes.formatter.useoffset'] = False
-plt.rcParams['axes.formatter.use_mathtext'] = False
+plt.rcParams["axes.formatter.useoffset"] = False
+plt.rcParams["axes.formatter.use_mathtext"] = False
 
 
 # Define canonical layer ordering (early → middle → late)
@@ -51,9 +51,9 @@ def format_number(x: float) -> str:
     if abs_x >= 1e9:
         return f"{x/1e9:.1f}B"
     elif abs_x >= 1e6:
-        return f"{x/1e6:.0f}M" if x == int(x/1e6)*1e6 else f"{x/1e6:.1f}M"
+        return f"{x/1e6:.0f}M" if x == int(x / 1e6) * 1e6 else f"{x/1e6:.1f}M"
     elif abs_x >= 1000:
-        return f"{x/1e3:.0f}K" if x == int(x/1e3)*1e3 else f"{x/1e3:.1f}K"
+        return f"{x/1e3:.0f}K" if x == int(x / 1e3) * 1e3 else f"{x/1e3:.1f}K"
     # Medium: integers or 1 decimal
     elif abs_x >= 1:
         if abs(x - round(x)) < 0.1:
@@ -78,42 +78,50 @@ def format_number(x: float) -> str:
             return f"{x*1e9:.2f}n"
 
 
-def setup_clean_axis(ax, axis='x', log_scale=False, max_ticks=6):
+def setup_clean_axis(ax, axis="x", log_scale=False, max_ticks=6):
     """Set up clean axis with controlled tick count and formatting."""
     formatter = ticker.FuncFormatter(lambda x, p: format_number(x) if x > 0 else "")
 
-    if axis == 'x':
+    if axis == "x":
         # For log scale, check if data spans enough range for LogLocator
         # Otherwise use MaxNLocator which works better for narrow ranges
         if log_scale:
             xlim = ax.get_xlim()
             if xlim[1] > 0 and xlim[0] > 0 and xlim[1] / xlim[0] > 10:
                 # Data spans more than 1 order of magnitude - use LogLocator
-                ax.xaxis.set_major_locator(ticker.LogLocator(base=10, numticks=max_ticks))
+                ax.xaxis.set_major_locator(
+                    ticker.LogLocator(base=10, numticks=max_ticks)
+                )
             else:
                 # Narrow range - use MaxNLocator even on log scale
                 ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=max_ticks))
         else:
-            ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=max_ticks, integer=True))
+            ax.xaxis.set_major_locator(
+                ticker.MaxNLocator(nbins=max_ticks, integer=True)
+            )
         ax.xaxis.set_major_formatter(formatter)
         ax.xaxis.set_minor_locator(ticker.NullLocator())
         ax.xaxis.set_minor_formatter(ticker.NullFormatter())
-        ax.tick_params(axis='x', labelsize=7, rotation=0)
+        ax.tick_params(axis="x", labelsize=7, rotation=0)
         ax.xaxis.get_offset_text().set_visible(False)
     else:
         # For log scale, check if data spans enough range for LogLocator
         if log_scale:
             ylim = ax.get_ylim()
             if ylim[1] > 0 and ylim[0] > 0 and ylim[1] / ylim[0] > 10:
-                ax.yaxis.set_major_locator(ticker.LogLocator(base=10, numticks=max_ticks))
+                ax.yaxis.set_major_locator(
+                    ticker.LogLocator(base=10, numticks=max_ticks)
+                )
             else:
                 ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=max_ticks))
         else:
-            ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=max_ticks, integer=True))
+            ax.yaxis.set_major_locator(
+                ticker.MaxNLocator(nbins=max_ticks, integer=True)
+            )
         ax.yaxis.set_major_formatter(formatter)
         ax.yaxis.set_minor_locator(ticker.NullLocator())
         ax.yaxis.set_minor_formatter(ticker.NullFormatter())
-        ax.tick_params(axis='y', labelsize=7)
+        ax.tick_params(axis="y", labelsize=7)
         ax.yaxis.get_offset_text().set_visible(False)
 
 
@@ -188,17 +196,18 @@ def plot_singular_values_grid(
     n_cols = len(steps)
 
     fig, axes = plt.subplots(
-        n_rows, n_cols,
+        n_rows,
+        n_cols,
         figsize=(figsize_per_subplot[0] * n_cols, figsize_per_subplot[1] * n_rows),
-        squeeze=False
+        squeeze=False,
     )
 
     # Title for the entire figure
     title_map = {
         "grad_sv": "Gradient Singular Values",
-        "update_sv": "Update Singular Values"
+        "update_sv": "Update Singular Values",
     }
-    #fig.suptitle(title_map.get(record_type, record_type), fontsize=14, fontweight='bold')
+    # fig.suptitle(title_map.get(record_type, record_type), fontsize=14, fontweight='bold')
 
     # Plot each cell
     for row_idx, layer in enumerate(layer_names):
@@ -207,30 +216,44 @@ def plot_singular_values_grid(
 
             # Check if data exists
             if layer not in records[step] or record_type not in records[step][layer]:
-                ax.text(0.5, 0.5, "No data", ha='center', va='center', transform=ax.transAxes)
+                ax.text(
+                    0.5,
+                    0.5,
+                    "No data",
+                    ha="center",
+                    va="center",
+                    transform=ax.transAxes,
+                )
                 ax.set_xticks([])
                 ax.set_yticks([])
             else:
                 sv = records[step][layer][record_type].numpy()
                 indices = np.arange(1, len(sv) + 1)
 
-                ax.plot(indices, sv, 'b-', linewidth=1.5, alpha=0.8)
+                ax.plot(indices, sv, "b-", linewidth=1.5, alpha=0.8)
                 ax.fill_between(indices, sv, alpha=0.3)
 
                 if log_scale:
-                    ax.set_yscale('log')
+                    ax.set_yscale("log")
 
                 # Add statistics as text
-                ratio_val = sv[0]/sv[-1] if sv[-1] > 0 else 0
+                ratio_val = sv[0] / sv[-1] if sv[-1] > 0 else 0
                 stats_text = f"max: {format_number(sv[0])}\nmin: {format_number(sv[-1])}\nratio: {format_number(ratio_val)}"
-                ax.text(0.95, 0.95, stats_text, transform=ax.transAxes,
-                       fontsize=7, verticalalignment='top', horizontalalignment='right',
-                       bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+                ax.text(
+                    0.95,
+                    0.95,
+                    stats_text,
+                    transform=ax.transAxes,
+                    fontsize=7,
+                    verticalalignment="top",
+                    horizontalalignment="right",
+                    bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5),
+                )
 
                 ax.set_xlim(1, len(sv))
                 ax.grid(True, alpha=0.3)
-                setup_clean_axis(ax, axis='x', log_scale=False)
-                setup_clean_axis(ax, axis='y', log_scale=log_scale)
+                setup_clean_axis(ax, axis="x", log_scale=False)
+                setup_clean_axis(ax, axis="y", log_scale=log_scale)
 
             # Labels
             if row_idx == 0:
@@ -241,7 +264,7 @@ def plot_singular_values_grid(
                 ax.set_xlabel("Index", fontsize=9)
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
     print(f"Saved plot to {output_path}")
     plt.close()
 
@@ -304,17 +327,18 @@ def plot_singular_values_histogram_grid(
     n_cols = len(steps)
 
     fig, axes = plt.subplots(
-        n_rows, n_cols,
+        n_rows,
+        n_cols,
         figsize=(figsize_per_subplot[0] * n_cols, figsize_per_subplot[1] * n_rows),
-        squeeze=False
+        squeeze=False,
     )
 
     # Title for the entire figure
     title_map = {
         "grad_sv": "Gradient Singular Value Distribution",
-        "update_sv": "Update Singular Value Distribution"
+        "update_sv": "Update Singular Value Distribution",
     }
-    #fig.suptitle(title_map.get(record_type, record_type), fontsize=14, fontweight='bold')
+    # fig.suptitle(title_map.get(record_type, record_type), fontsize=14, fontweight='bold')
 
     # Plot each cell
     for row_idx, layer in enumerate(layer_names):
@@ -323,7 +347,14 @@ def plot_singular_values_histogram_grid(
 
             # Check if data exists
             if layer not in records[step] or record_type not in records[step][layer]:
-                ax.text(0.5, 0.5, "No data", ha='center', va='center', transform=ax.transAxes)
+                ax.text(
+                    0.5,
+                    0.5,
+                    "No data",
+                    ha="center",
+                    va="center",
+                    transform=ax.transAxes,
+                )
                 ax.set_xticks([])
                 ax.set_yticks([])
             else:
@@ -338,25 +369,45 @@ def plot_singular_values_histogram_grid(
                     bins = np.linspace(sv_min, sv_max, n_bins)
 
                 # Plot histogram
-                ax.hist(sv, bins=bins, color='steelblue', alpha=0.7, edgecolor='black', linewidth=0.5)
+                ax.hist(
+                    sv,
+                    bins=bins,
+                    color="steelblue",
+                    alpha=0.7,
+                    edgecolor="black",
+                    linewidth=0.5,
+                )
 
                 # Add vertical dashed line at maximum singular value
-                ax.axvline(x=sv_max, color='red', linestyle='--', linewidth=2, label=f'max={format_number(sv_max)}')
+                ax.axvline(
+                    x=sv_max,
+                    color="red",
+                    linestyle="--",
+                    linewidth=2,
+                    label=f"max={format_number(sv_max)}",
+                )
 
                 use_log = log_scale_x and sv_min > 0
                 if use_log:
-                    ax.set_xscale('log')
+                    ax.set_xscale("log")
 
                 # Add statistics as text
-                ratio_val = sv_max/sv_min if sv_min > 0 else 0
+                ratio_val = sv_max / sv_min if sv_min > 0 else 0
                 stats_text = f"max: {format_number(sv_max)}\nmin: {format_number(sv_min)}\nratio: {format_number(ratio_val)}"
-                ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
-                       fontsize=7, verticalalignment='top', horizontalalignment='left',
-                       bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+                ax.text(
+                    0.02,
+                    0.98,
+                    stats_text,
+                    transform=ax.transAxes,
+                    fontsize=7,
+                    verticalalignment="top",
+                    horizontalalignment="left",
+                    bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5),
+                )
 
                 ax.grid(True, alpha=0.3)
-                setup_clean_axis(ax, axis='x', log_scale=use_log)
-                setup_clean_axis(ax, axis='y', log_scale=False)
+                setup_clean_axis(ax, axis="x", log_scale=use_log)
+                setup_clean_axis(ax, axis="y", log_scale=False)
 
             # Labels
             if row_idx == 0:
@@ -367,7 +418,7 @@ def plot_singular_values_histogram_grid(
                 ax.set_xlabel("Singular Value", fontsize=9)
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
     print(f"Saved histogram plot to {output_path}")
     plt.close()
 
@@ -408,7 +459,9 @@ def plot_singular_values_comparison(
 
     # Create subplots: 2 columns (grad_sv, update_sv), rows for each layer
     n_rows = len(layer_names)
-    fig, axes = plt.subplots(n_rows, 2, figsize=(figsize[0], figsize[1] * n_rows / 4), squeeze=False)
+    fig, axes = plt.subplots(
+        n_rows, 2, figsize=(figsize[0], figsize[1] * n_rows / 4), squeeze=False
+    )
 
     colors = plt.cm.viridis(np.linspace(0, 1, len(steps)))
 
@@ -421,16 +474,29 @@ def plot_singular_values_comparison(
                 if layer in records[step] and record_type in records[step][layer]:
                     sv = records[step][layer][record_type].numpy()
                     indices = np.arange(1, len(sv) + 1)
-                    ax.plot(indices, sv, color=colors[step_idx],
-                           label=f"Step {step}", linewidth=1.5, alpha=0.8)
+                    ax.plot(
+                        indices,
+                        sv,
+                        color=colors[step_idx],
+                        label=f"Step {step}",
+                        linewidth=1.5,
+                        alpha=0.8,
+                    )
                     has_data = True
 
             if has_data:
-                ax.set_yscale('log')
+                ax.set_yscale("log")
                 ax.grid(True, alpha=0.3)
-                ax.legend(fontsize=7, loc='upper right')
+                ax.legend(fontsize=7, loc="upper right")
             else:
-                ax.text(0.5, 0.5, "No data", ha='center', va='center', transform=ax.transAxes)
+                ax.text(
+                    0.5,
+                    0.5,
+                    "No data",
+                    ha="center",
+                    va="center",
+                    transform=ax.transAxes,
+                )
 
             if row_idx == 0:
                 title = "Gradient SV" if record_type == "grad_sv" else "Update SV"
@@ -441,7 +507,7 @@ def plot_singular_values_comparison(
                 ax.set_xlabel("Singular Value Index", fontsize=9)
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
     print(f"Saved comparison plot to {output_path}")
     plt.close()
 
@@ -484,19 +550,30 @@ def plot_spectral_norm_evolution(
                     valid_steps.append(step)
 
             if spectral_norms:
-                ax.plot(valid_steps, spectral_norms, 'o-', label=layer, linewidth=2, markersize=8)
+                ax.plot(
+                    valid_steps,
+                    spectral_norms,
+                    "o-",
+                    label=layer,
+                    linewidth=2,
+                    markersize=8,
+                )
 
         ax.set_xlabel("Training Step", fontsize=11)
         ax.set_ylabel("Spectral Norm (Max SV)", fontsize=11)
-        ax.set_yscale('log')
+        ax.set_yscale("log")
         ax.grid(True, alpha=0.3)
-        ax.legend(fontsize=8, loc='best')
+        ax.legend(fontsize=8, loc="best")
 
-        title = "Gradient Spectral Norm" if record_type == "grad_sv" else "Update Spectral Norm"
+        title = (
+            "Gradient Spectral Norm"
+            if record_type == "grad_sv"
+            else "Update Spectral Norm"
+        )
         ax.set_title(title, fontsize=12)
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
     print(f"Saved spectral norm evolution plot to {output_path}")
     plt.close()
 
@@ -541,19 +618,30 @@ def plot_condition_number_evolution(
                     valid_steps.append(step)
 
             if condition_numbers:
-                ax.plot(valid_steps, condition_numbers, 'o-', label=layer, linewidth=2, markersize=8)
+                ax.plot(
+                    valid_steps,
+                    condition_numbers,
+                    "o-",
+                    label=layer,
+                    linewidth=2,
+                    markersize=8,
+                )
 
         ax.set_xlabel("Training Step", fontsize=11)
         ax.set_ylabel("Condition Number (Max/Min SV)", fontsize=11)
-        ax.set_yscale('log')
+        ax.set_yscale("log")
         ax.grid(True, alpha=0.3)
-        ax.legend(fontsize=8, loc='best')
+        ax.legend(fontsize=8, loc="best")
 
-        title = "Gradient Condition Number" if record_type == "grad_sv" else "Update Condition Number"
+        title = (
+            "Gradient Condition Number"
+            if record_type == "grad_sv"
+            else "Update Condition Number"
+        )
         ax.set_title(title, fontsize=12)
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
     print(f"Saved condition number evolution plot to {output_path}")
     plt.close()
 
@@ -562,9 +650,9 @@ def print_summary_statistics(records: Dict[int, Dict[str, Dict[str, torch.Tensor
     """Print summary statistics for all recorded singular values."""
     steps = sorted(records.keys())
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("SUMMARY STATISTICS")
-    print("="*80)
+    print("=" * 80)
 
     for step in steps:
         print(f"\n--- Step {step} ---")
@@ -584,12 +672,31 @@ def print_summary_statistics(records: Dict[int, Dict[str, Dict[str, torch.Tensor
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Plot singular value distributions from SVD recordings")
-    parser.add_argument("--svd_dir", type=str, required=True, help="Directory containing SVD records")
-    parser.add_argument("--output_dir", type=str, default=None, help="Output directory for plots (default: same as svd_dir)")
-    parser.add_argument("--prefix", type=str, default="svd", help="Prefix for output files")
-    parser.add_argument("--no_log_scale", action="store_true", help="Disable log scale for y-axis")
-    parser.add_argument("--format", type=str, default="pdf", choices=["pdf", "png", "both"], help="Output format: pdf, png, or both")
+    parser = argparse.ArgumentParser(
+        description="Plot singular value distributions from SVD recordings"
+    )
+    parser.add_argument(
+        "--svd_dir", type=str, required=True, help="Directory containing SVD records"
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default=None,
+        help="Output directory for plots (default: same as svd_dir)",
+    )
+    parser.add_argument(
+        "--prefix", type=str, default="svd", help="Prefix for output files"
+    )
+    parser.add_argument(
+        "--no_log_scale", action="store_true", help="Disable log scale for y-axis"
+    )
+    parser.add_argument(
+        "--format",
+        type=str,
+        default="pdf",
+        choices=["pdf", "png", "both"],
+        help="Output format: pdf, png, or both",
+    )
 
     args = parser.parse_args()
 
@@ -621,7 +728,7 @@ def main():
             records,
             output_dir / f"{args.prefix}_grad_grid.{fmt}",
             record_type="grad_sv",
-            log_scale=not args.no_log_scale
+            log_scale=not args.no_log_scale,
         )
 
         # 2. Grid plot for updates (line plot)
@@ -629,7 +736,7 @@ def main():
             records,
             output_dir / f"{args.prefix}_update_grid.{fmt}",
             record_type="update_sv",
-            log_scale=not args.no_log_scale
+            log_scale=not args.no_log_scale,
         )
 
         # 3. Histogram grid for gradients
@@ -637,7 +744,7 @@ def main():
             records,
             output_dir / f"{args.prefix}_grad_hist.{fmt}",
             record_type="grad_sv",
-            log_scale_x=not args.no_log_scale
+            log_scale_x=not args.no_log_scale,
         )
 
         # 4. Histogram grid for updates
@@ -645,25 +752,22 @@ def main():
             records,
             output_dir / f"{args.prefix}_update_hist.{fmt}",
             record_type="update_sv",
-            log_scale_x=not args.no_log_scale
+            log_scale_x=not args.no_log_scale,
         )
 
         # 5. Comparison plot (all steps on same axis)
         plot_singular_values_comparison(
-            records,
-            output_dir / f"{args.prefix}_comparison.{fmt}"
+            records, output_dir / f"{args.prefix}_comparison.{fmt}"
         )
 
         # 6. Spectral norm evolution
         plot_spectral_norm_evolution(
-            records,
-            output_dir / f"{args.prefix}_spectral_norm.{fmt}"
+            records, output_dir / f"{args.prefix}_spectral_norm.{fmt}"
         )
 
         # 7. Condition number evolution
         plot_condition_number_evolution(
-            records,
-            output_dir / f"{args.prefix}_condition_number.{fmt}"
+            records, output_dir / f"{args.prefix}_condition_number.{fmt}"
         )
 
     print(f"\nAll plots saved to {output_dir}")

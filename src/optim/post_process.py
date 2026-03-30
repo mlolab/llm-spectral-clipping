@@ -1,5 +1,7 @@
-import torch
 import math
+
+import torch
+
 
 def normalize_sigvals(G, steps: int):
     """
@@ -10,6 +12,7 @@ def normalize_sigvals(G, steps: int):
         return G / (G.norm() + 1e-7)
 
     return _normalize_sigvals_matrix(G, steps)
+
 
 def clip_sigvals(G: torch.Tensor, clip_c: float = 1.0, ns_iter: int = 10):
     """
@@ -28,7 +31,7 @@ def clip_sigvals(G: torch.Tensor, clip_c: float = 1.0, ns_iter: int = 10):
     Returns:
         Spectrally clipped tensor with same shape as G
     """
-    # vector input 
+    # vector input
     if G.ndim == 1:
         norm = G.norm()
         if norm <= clip_c:
@@ -65,9 +68,9 @@ def clip_sigvals(G: torch.Tensor, clip_c: float = 1.0, ns_iter: int = 10):
     # NOTE: We always compute the clipping (no early exit) to avoid GPU→CPU sync
     # It seems using the condition "if s_max_XXT.sqrt() <= clip_c" is even slower.
     I = torch.eye(m, dtype=X.dtype, device=X.device)
-    A = I + XXT / (clip_c ** 2)
+    A = I + XXT / (clip_c**2)
     # Keep alpha as a tensor to avoid GPU→CPU sync from .item()
-    alpha = 1.0 + s_max_XXT / (clip_c ** 2)
+    alpha = 1.0 + s_max_XXT / (clip_c**2)
 
     InvSqrt = matrix_inv_sqrt_NS(A, alpha, ns_iter=ns_iter)
     out = InvSqrt @ X
@@ -91,12 +94,15 @@ def _normalize_sigvals_matrix(G, steps: int):
     # Perform the NS iterations
     for _ in range(steps):
         A = X @ X.mT
-        B = b * A + c * A @ A # quintic computation strategy adapted from suggestion by @jxbz, @leloykun, and @YouJiacheng
+        B = (
+            b * A + c * A @ A
+        )  # quintic computation strategy adapted from suggestion by @jxbz, @leloykun, and @YouJiacheng
         X = a * X + B @ X
-    
+
     if G.size(-2) > G.size(-1):
         X = X.mT
     return X
+
 
 @torch.compile
 def _matrix_inv_sqrt_NS_core(Ahat: torch.Tensor, ns_iter: int = 10):
@@ -153,6 +159,3 @@ def matrix_inv_sqrt_NS(A: torch.Tensor, alpha, ns_iter: int = 10):
         return Z / torch.sqrt(alpha)
     else:
         return Z / math.sqrt(alpha)
-
-
-

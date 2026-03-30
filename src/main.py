@@ -32,6 +32,7 @@ from optim.sign import Signum
 from optim.soap import SOAP
 from optim.sophia import SophiaG
 
+
 def get_args():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument(
@@ -363,15 +364,20 @@ def main(args, parser):
             lr=args.lr,
             momentum=args.momentum,
             weight_decay=args.weight_decay,
-            nesterov=args.nesterov
+            nesterov=args.nesterov,
         )
     print(f"\nOptimizer:\n{opt}")
 
     # Wrap with SPECTRA if spectral post-processing is enabled
     if args.spectral_post_process != "none":
         from optim.spectra import SPECTRA
+
         # clip_decay_fract: use wsd_fract_decay if not explicitly set
-        clip_decay_fract = args.clip_decay_fract if args.clip_decay_fract is not None else args.wsd_fract_decay
+        clip_decay_fract = (
+            args.clip_decay_fract
+            if args.clip_decay_fract is not None
+            else args.wsd_fract_decay
+        )
         opt = SPECTRA(
             opt,
             post_process=args.spectral_post_process,
@@ -386,12 +392,14 @@ def main(args, parser):
             clip_final_scale=args.clip_final_scale,
             total_steps=args.iterations,
         )
-        print(f"Wrapped with SPECTRA: mode={args.spectral_post_process}, clip_c={args.spectral_clip_c}, \
+        print(
+            f"Wrapped with SPECTRA: mode={args.spectral_post_process}, clip_c={args.spectral_clip_c}, \
                     apply_to={args.spectral_apply_to}, warmup_steps={args.warmup_steps}, \
                     disable_dynamic_clip={args.disable_dynamic_clip}, \
                     clip_decay_type={args.clip_decay_type}, \
                     clip_decay_fract={clip_decay_fract}, \
-                    clip_final_scale={args.clip_final_scale}")
+                    clip_final_scale={args.clip_final_scale}"
+        )
 
     if args.scheduler != "none":
         assert (
@@ -475,6 +483,7 @@ def main(args, parser):
     # This ensures all ranks agree on whether to resume before proceeding
     if distributed_backend.get_world_size() > 1:
         import torch.distributed as dist
+
         # Broadcast resume_from from rank 0 to all other ranks
         resume_from_list = [args.resume_from]
         dist.broadcast_object_list(resume_from_list, src=0)

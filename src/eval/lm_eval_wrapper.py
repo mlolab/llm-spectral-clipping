@@ -7,14 +7,13 @@ Usage:
     results = lm_eval.evaluator.simple_evaluate(model=lm, tasks=["hellaswag"])
 """
 
+import tiktoken
 import torch
 import torch.nn.functional as F
-import tiktoken
-from tqdm import tqdm
-
+from lm_eval import utils
 from lm_eval.api.model import TemplateLM
 from lm_eval.api.registry import register_model
-from lm_eval import utils
+from tqdm import tqdm
 
 
 @register_model("custom")
@@ -185,9 +184,7 @@ class CustomLM(TemplateLM):
 
             # Score each window
             windows = [(None,) + w for w in rolling_token_windows]
-            window_results = self._loglikelihood_tokens(
-                windows, disable_tqdm=True
-            )
+            window_results = self._loglikelihood_tokens(windows, disable_tqdm=True)
             total_ll = sum(ll for ll, _ in window_results)
             results.append(total_ll)
 
