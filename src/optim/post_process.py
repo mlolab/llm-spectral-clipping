@@ -3,7 +3,7 @@ import math
 import torch
 
 
-def normalize_sigvals(G, steps: int):
+def normalize_sigvals(G, steps: int, use_float32: bool = False):
     """
     Normalize singular values of G to approximately 1 using Newton-Schulz iterations.
     """
@@ -11,10 +11,15 @@ def normalize_sigvals(G, steps: int):
     if G.ndim == 1:
         return G / (G.norm() + 1e-7)
 
-    return _normalize_sigvals_matrix(G, steps)
+    return _normalize_sigvals_matrix(G, steps, use_float32)
 
 
-def clip_sigvals(G: torch.Tensor, clip_c: float = 1.0, ns_iter: int = 10):
+def clip_sigvals(
+    G: torch.Tensor,
+    clip_c: float = 1.0,
+    ns_iter: int = 10,
+    use_float32: bool = False,
+):
     """
     Soft spectral clipping using the approximation:
         Hc(X) = (I + XX^T / c^2)^{-1/2} @ X
@@ -27,6 +32,7 @@ def clip_sigvals(G: torch.Tensor, clip_c: float = 1.0, ns_iter: int = 10):
         G: Input tensor (vector, matrix, or batched matrices)
         clip_c: Clipping threshold
         ns_iter: Number of Newton-Schulz iterations
+        use_float32: Use float32 for NS iterations (more stable at high ns_iter)
 
     Returns:
         Spectrally clipped tensor with same shape as G
@@ -38,7 +44,7 @@ def clip_sigvals(G: torch.Tensor, clip_c: float = 1.0, ns_iter: int = 10):
             return G
         return G / torch.sqrt(1 + (norm / clip_c) ** 2)
 
-    X = G.bfloat16()
+    X = G.float() if use_float32 else G.bfloat16()
 
     # Work with the wide matrix (rows <= cols) for efficiency
     transposed = False
@@ -82,10 +88,10 @@ def clip_sigvals(G: torch.Tensor, clip_c: float = 1.0, ns_iter: int = 10):
 
 
 @torch.compile
-def _normalize_sigvals_matrix(G, steps: int):
+def _normalize_sigvals_matrix(G, steps: int, use_float32: bool = False):
     """Implementation from Muon."""
     a, b, c = (3.4445, -4.7750, 2.0315)
-    X = G.bfloat16()
+    X = G.float() if use_float32 else G.bfloat16()
     if G.size(-2) > G.size(-1):
         X = X.mT
 

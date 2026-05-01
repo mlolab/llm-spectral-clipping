@@ -391,6 +391,7 @@ def main(args, parser):
             clip_decay_fract=clip_decay_fract,
             clip_final_scale=args.clip_final_scale,
             total_steps=args.iterations,
+            ns_float32=args.ns_float32,
         )
         print(
             f"Wrapped with SPECTRA: mode={args.spectral_post_process}, clip_c={args.spectral_clip_c}, \

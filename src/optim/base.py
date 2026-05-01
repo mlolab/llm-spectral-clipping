@@ -146,8 +146,16 @@ def train(
     grad_norms = []
     model.train()
 
-    # Timing stats for --log_step_timing
+    # Timing stats for --log_step_timing (cleared every log_interval)
     timing_stats = {
+        "forward": [],
+        "backward": [],
+        "spectral": [],
+        "optimizer": [],
+        "other": [],
+    }
+    # Full-run timing accumulator (never cleared, saved at end of training)
+    timing_stats_all = {
         "forward": [],
         "backward": [],
         "spectral": [],
@@ -291,18 +299,42 @@ def train(
             if isinstance(model, torch.nn.parallel.DistributedDataParallel):
                 raw_model = model.module
 
-            # Dynamic clipping threshold during warmup
-            current_lr = opt.param_groups[0]["lr"]
+            # Pre-clip threshold schedule
             if (
-                not cfg.disable_dynamic_clip
-                and cfg.warmup_steps > 0
-                and curr_iter < cfg.warmup_steps
+                cfg.spectral_grad_clip_c_end is not None
+                and cfg.spectral_grad_clip_schedule != "constant"
             ):
-                # During warmup: c * lr = prod_lr_c (constant)
-                prod_lr_c = cfg.spectral_grad_clip_c * cfg.lr
-                clip_c = prod_lr_c / max(current_lr, 1e-10)
+                c_start = cfg.spectral_grad_clip_c
+                c_end = cfg.spectral_grad_clip_c_end
+                t = min(curr_iter / max(cfg.iterations, 1), 1.0)
+
+                if cfg.spectral_grad_clip_schedule == "linear":
+                    clip_c = c_start + (c_end - c_start) * t
+                elif cfg.spectral_grad_clip_schedule == "cos":
+                    clip_c = (
+                        c_start + (c_end - c_start) * (1 - math.cos(math.pi * t)) * 0.5
+                    )
+                elif cfg.spectral_grad_clip_schedule == "sqrt":
+                    clip_c = c_start + (c_end - c_start) * math.sqrt(t)
+                elif cfg.spectral_grad_clip_schedule == "exp":
+                    clip_c = c_start * (c_end / max(c_start, 1e-10)) ** t
+                elif cfg.spectral_grad_clip_schedule == "square":
+                    clip_c = c_start + (c_end - c_start) * t**2
+                else:
+                    clip_c = cfg.spectral_grad_clip_c
             else:
-                clip_c = cfg.spectral_grad_clip_c
+                # Existing behavior: constant c (with optional warmup dynamic clip)
+                current_lr = opt.param_groups[0]["lr"]
+                if (
+                    not cfg.disable_dynamic_clip
+                    and cfg.warmup_steps > 0
+                    and curr_iter < cfg.warmup_steps
+                ):
+                    # During warmup: c * lr = prod_lr_c (constant)
+                    prod_lr_c = cfg.spectral_grad_clip_c * cfg.lr
+                    clip_c = prod_lr_c / max(current_lr, 1e-10)
+                else:
+                    clip_c = cfg.spectral_grad_clip_c
 
             # Time spectral gradient clipping
             if cfg.log_step_timing:
@@ -318,6 +350,7 @@ def train(
                             p.grad.data,
                             clip_c=clip_c,
                             ns_iter=cfg.spectral_ns_steps,
+                            use_float32=cfg.ns_float32,
                         )
                     )
 
@@ -478,6 +511,12 @@ def train(
                 * 1000
             )
             timing_stats["other"].append(t_other)
+            # Also accumulate for full-run summary
+            timing_stats_all["forward"].append(t_forward_total * 1000)
+            timing_stats_all["backward"].append(t_backward_total * 1000)
+            timing_stats_all["spectral"].append(t_spectral_total * 1000)
+            timing_stats_all["optimizer"].append(t_optimizer_total * 1000)
+            timing_stats_all["other"].append(t_other)
 
         curr_iter += 1
 
@@ -594,6 +633,43 @@ def train(
     # Save all update noise structure records at the end of training
     if update_noise_recorder is not None:
         update_noise_recorder.save_all_records()
+
+    # Save timing summary to results folder
+    if (
+        cfg.log_step_timing
+        and timing_stats_all["forward"]
+        and distributed_backend.is_master_process()
+    ):
+        import json as json_mod
+
+        warmup_skip = max(10, len(timing_stats_all["forward"]) // 10)
+        summary = {}
+        for key in timing_stats_all:
+            values = timing_stats_all[key][warmup_skip:]
+            if values:
+                mean = sum(values) / len(values)
+                summary[f"{key}_ms_mean"] = round(mean, 3)
+                summary[f"{key}_ms_std"] = round(
+                    (sum((v - mean) ** 2 for v in values) / len(values)) ** 0.5, 3
+                )
+
+        total = sum(
+            summary.get(f"{k}_ms_mean", 0)
+            for k in ["forward", "backward", "spectral", "optimizer", "other"]
+        )
+        summary["total_ms_mean"] = round(total, 3)
+        if total > 0:
+            for key in ["forward", "backward", "spectral", "optimizer", "other"]:
+                summary[f"{key}_frac"] = round(
+                    summary.get(f"{key}_ms_mean", 0) / total, 4
+                )
+
+        summary["num_steps_total"] = len(timing_stats_all["forward"])
+        summary["num_steps_measured"] = len(timing_stats_all["forward"]) - warmup_skip
+
+        timing_path = exp_dir / "timing_summary.json"
+        with open(timing_path, "w") as f:
+            json_mod.dump(summary, f, indent=2)
 
     return stats
 

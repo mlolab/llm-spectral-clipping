@@ -52,6 +52,7 @@ class SPECTRA(torch.optim.Optimizer):
         clip_decay_fract: float = 0.1,
         clip_final_scale: float = 0.0,
         total_steps: int = 0,
+        ns_float32: bool = False,
     ):
         # Store base optimizer - we delegate param_groups and state to it
         self.base_optimizer = base_optimizer
@@ -59,6 +60,7 @@ class SPECTRA(torch.optim.Optimizer):
         self.clip_c = clip_c
         self.ns_steps = ns_steps
         self.apply_to = apply_to
+        self.ns_float32 = ns_float32
 
         # Warmup schedule for clipping threshold
         self.warmup_steps = warmup_steps
@@ -85,6 +87,22 @@ class SPECTRA(torch.optim.Optimizer):
         for group_idx, group in enumerate(base_optimizer.param_groups):
             for param_idx, p in enumerate(group["params"]):
                 self._param_to_group[p] = (group_idx, param_idx)
+
+    def __getattr__(self, name):
+        """Delegate unknown attributes to the base optimizer.
+
+        This is needed for optimizer-specific methods like MARS's update_last_grad()
+        and Sophia's update_hessian() to be accessible through the SPECTRA wrapper.
+        """
+        # Avoid infinite recursion if base_optimizer is not yet set
+        if name == "base_optimizer" or "base_optimizer" not in self.__dict__:
+            raise AttributeError(name)
+        try:
+            return getattr(self.base_optimizer, name)
+        except AttributeError:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            )
 
     def _should_process(self, param: torch.Tensor) -> bool:
         """Determine if a parameter should have post-processing applied."""
@@ -160,9 +178,13 @@ class SPECTRA(torch.optim.Optimizer):
         """Apply the selected post-processing to update U."""
         if self.post_process_mode == "clip":
             clip_c = self._get_current_clip_c(current_lr)
-            return clip_sigvals(U, clip_c=clip_c, ns_iter=self.ns_steps)
+            return clip_sigvals(
+                U, clip_c=clip_c, ns_iter=self.ns_steps, use_float32=self.ns_float32
+            )
         elif self.post_process_mode == "normalize":
-            return normalize_sigvals(U, steps=self.ns_steps)
+            return normalize_sigvals(
+                U, steps=self.ns_steps, use_float32=self.ns_float32
+            )
         else:
             raise ValueError(f"Unknown post_process mode: {self.post_process_mode}")
 

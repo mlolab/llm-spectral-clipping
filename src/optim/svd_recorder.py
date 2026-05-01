@@ -83,6 +83,15 @@ class SVDRecorder:
             "late": n_layer - 1,
         }
 
+        # Detect MLP weight name: llama uses w1, GPT-style uses c_fc
+        # Strip module. prefix from DDP-wrapped models
+        param_names = set(
+            n.replace("module.", "") for n, _ in model.named_parameters()
+        )
+        mlp_key = (
+            "w1" if "transformer.h.0.mlp.w1.weight" in param_names else "c_fc"
+        )
+
         # Build mapping from friendly names to actual parameter names
         for pos in svd_layers:
             if pos == "embedding":
@@ -92,7 +101,7 @@ class SVDRecorder:
                 idx = layer_indices[pos]
                 # Record attention and MLP layers
                 attn_name = f"transformer.h.{idx}.attn.c_attn.weight"
-                mlp_name = f"transformer.h.{idx}.mlp.w1.weight"
+                mlp_name = f"transformer.h.{idx}.mlp.{mlp_key}.weight"
                 self.layer_names[f"{pos}_attn"] = attn_name
                 self.layer_names[f"{pos}_mlp"] = mlp_name
                 self.param_to_layer[attn_name] = f"{pos}_attn"
@@ -452,6 +461,15 @@ class NoiseStructureRecorder:
             "late": n_layer - 1,
         }
 
+        # Detect MLP weight name: llama uses w1, GPT-style uses c_fc
+        # Strip module. prefix from DDP-wrapped models
+        param_names = set(
+            n.replace("module.", "") for n, _ in model.named_parameters()
+        )
+        mlp_key = (
+            "w1" if "transformer.h.0.mlp.w1.weight" in param_names else "c_fc"
+        )
+
         for pos in svd_layers:
             if pos == "embedding":
                 self.layer_names["embedding"] = "transformer.wte.weight"
@@ -459,7 +477,7 @@ class NoiseStructureRecorder:
             elif pos in layer_indices:
                 idx = layer_indices[pos]
                 attn_name = f"transformer.h.{idx}.attn.c_attn.weight"
-                mlp_name = f"transformer.h.{idx}.mlp.w1.weight"
+                mlp_name = f"transformer.h.{idx}.mlp.{mlp_key}.weight"
                 self.layer_names[f"{pos}_attn"] = attn_name
                 self.layer_names[f"{pos}_mlp"] = mlp_name
                 self.param_to_layer[attn_name] = f"{pos}_attn"
@@ -1052,6 +1070,15 @@ class UpdateNoiseRecorder:
             "late": n_layer - 1,
         }
 
+        # Detect MLP weight name: llama uses w1, GPT-style uses c_fc
+        # Strip module. prefix from DDP-wrapped models
+        param_names = set(
+            n.replace("module.", "") for n, _ in model.named_parameters()
+        )
+        mlp_key = (
+            "w1" if "transformer.h.0.mlp.w1.weight" in param_names else "c_fc"
+        )
+
         for pos in svd_layers:
             if pos == "embedding":
                 self.layer_names["embedding"] = "transformer.wte.weight"
@@ -1059,7 +1086,7 @@ class UpdateNoiseRecorder:
             elif pos in layer_indices:
                 idx = layer_indices[pos]
                 attn_name = f"transformer.h.{idx}.attn.c_attn.weight"
-                mlp_name = f"transformer.h.{idx}.mlp.w1.weight"
+                mlp_name = f"transformer.h.{idx}.mlp.{mlp_key}.weight"
                 self.layer_names[f"{pos}_attn"] = attn_name
                 self.layer_names[f"{pos}_mlp"] = mlp_name
                 self.param_to_layer[attn_name] = f"{pos}_attn"

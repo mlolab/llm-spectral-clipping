@@ -137,7 +137,20 @@ def parse_args(base_parser, args, namespace):
         "--spectral_grad_clip_c",
         default=0.1,
         type=float,
-        help="Clipping threshold for spectral gradient clipping",
+        help="Clipping threshold for spectral gradient clipping (start value if schedule is used)",
+    )
+    parser.add_argument(
+        "--spectral_grad_clip_c_end",
+        default=None,
+        type=float,
+        help="End value for pre-clip threshold schedule. If None, uses constant spectral_grad_clip_c.",
+    )
+    parser.add_argument(
+        "--spectral_grad_clip_schedule",
+        default="constant",
+        type=str,
+        choices=["constant", "linear", "cos", "sqrt", "exp", "square"],
+        help="Schedule curve for pre-clip threshold from spectral_grad_clip_c to spectral_grad_clip_c_end",
     )
     parser.add_argument("--momentum", default=0.9, type=float)
     parser.add_argument("--shampoo_beta", default=-1.0, type=float)
@@ -457,6 +470,11 @@ def parse_args(base_parser, args, namespace):
         default="all",
         choices=["2d", "all"],
         help="Which parameters to apply spectral post-processing to: 2d (matrices only) or all",
+    )
+    parser.add_argument(
+        "--ns_float32",
+        action="store_true",
+        help="Use float32 for Newton-Schulz iterations (more stable at high ns_steps, ~2x slower NS)",
     )
     parser.add_argument(
         "--disable_dynamic_clip",
