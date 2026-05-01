@@ -1,6 +1,11 @@
 # Enhancing LLM Training via Spectral Clipping
 
-This repository contains the implementation of the framework of **SPECTRA** for LLM training.
+[![arXiv](https://img.shields.io/badge/arXiv-2603.14315-b31b1b.svg)](https://arxiv.org/pdf/2603.14315)
+[![citation](https://img.shields.io/badge/cite-BibTeX-blue.svg)](#citation)
+
+This repository contains the implementation of the framework of **[SPECTRA](https://arxiv.org/pdf/2603.14315)** for LLM training, built on top of [llm-baselines](https://github.com/epfml/llm-baselines) and [nanoGPT](https://github.com/karpathy/nanogpt).
+
+**Authors:** Xiaowen Jiang, Andrei Semenov, Sebastian U. Stich
 
 ## Overview
 
@@ -99,3 +104,18 @@ In addition to post-processing optimizer updates, SPECTRA supports per-parameter
 By default, data is read from disk via `np.memmap` on every batch. This avoids high memory usage but can become a bottleneck when disk I/O is slow (e.g., network filesystems on HPC clusters) or when datasets are large (e.g., FineWeb-Edu at 187GB). 
 
 If disk I/O is slow, the `--shared_memory` flag is recommended to be enabled: rank 0 loads the dataset into POSIX shared memory once (incurring a one-time loading cost), and all GPU workers attach to the same region (zero-copy) — fast reads without memory duplication.
+
+
+## Contact & Citation
+
+Please do not hesitate to reach out to us if you have questions. Feel free to open an [issue](../../issues). If you find this work useful, please consider citing the paper:
+
+<a id="citation"></a>
+```bibtex
+@article{jiang2025enhancing,
+    title={Enhancing {L}LM {T}raining via {S}pectral {C}lipping},
+    author={Jiang, Xiaowen and Semenov, Andrei and Stich, Sebastian U},
+    journal={arXiv preprint arXiv:2603.14315},
+    year={2026}
+}
+```
