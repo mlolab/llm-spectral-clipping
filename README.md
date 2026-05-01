@@ -109,10 +109,11 @@ Please do not hesitate to reach out to us if you have questions. Feel free to op
 
 <a id="citation"></a>
 ```bibtex
-@article{jiang2025enhancing,
-    title={Enhancing {L}LM {T}raining via {S}pectral {C}lipping},
-    author={Jiang, Xiaowen and Semenov, Andrei and Stich, Sebastian U},
-    journal={arXiv preprint arXiv:2603.14315},
-    year={2026}
+@inproceedings{jiang2026spectra,
+  title={{Enhancing LLM Training via Spectral Clipping}},
+  author={Jiang, Xiaowen and Semenov, Andrei and Stich, Sebastian U},
+  booktitle={Forty-third International Conference on Machine Learning},
+  url={https://arxiv.org/abs/2603.14315},
+  year={2026},
 }
 ```
