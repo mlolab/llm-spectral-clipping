@@ -1,4 +1,4 @@
-# Enhancing LLM Training via Spectral Clipping
+# Enhancing LLM Training via Spectral Clipping [ICML 2026]
 
 [![arXiv](https://img.shields.io/badge/arXiv-2603.14315-b31b1b.svg)](https://arxiv.org/pdf/2603.14315)
 [![citation](https://img.shields.io/badge/cite-BibTeX-blue.svg)](#citation)
@@ -9,7 +9,7 @@ This repository contains the implementation of the framework of **[SPECTRA](http
 
 ## Overview
 
-**SPECTRA** (**SPE**ctral **C**lipping for LLM **TR**aining **A**cceleration) is a general framework that applies *soft spectral clipping* to optimizer updates (and optionally to raw stochastic gradients) during LLM training. It works with any  optimizer that uses decoupled weight decay (AdamW, Signum, AdEMAMix, etc.)
+**SPECTRA** (**SPE**ctral **C**lipping for LLM **TR**aining **A**cceleration) is a general framework that applies *soft spectral clipping* to optimizer updates (and optionally to raw stochastic gradients) during LLM training to improve convergence and generalization. It works with any  optimizer that uses decoupled weight decay (AdamW, Signum, AdEMAMix, etc.)
 
 **Implementation of SPECTRA as a wrapper**
 ([`src/optim/spectra.py`](src/optim/spectra.py)):
@@ -17,7 +17,7 @@ This repository contains the implementation of the framework of **[SPECTRA](http
  $X_{k+1} = (1 - \lambda \eta_k) X_k - \alpha \eta_k \cdot H_c(U_k)$ with $U_k = (X_k - X_{k+1})/\eta_k - \lambda X_k$,
 where 
 $H_c(X) = \left(I + XX^T/c^2\right)^{-1/2} X$
-maps each singular value $\sigma \mapsto \sigma / \sqrt{1 + \sigma^2 / c^2}$, which smoothly clips large singular values toward $c$ while preserving small ones. The matrix inverse square root is computed via Newton-Schulz iteration(([`src/optim/post_process.py`](src/optim/post_process.py))).
+maps each singular value $\sigma \mapsto \sigma / \sqrt{1 + \sigma^2 / c^2}$, which smoothly clips large singular values toward $c$ while preserving small ones. The matrix inverse square root is computed via Newton-Schulz iteration([`src/optim/post_process.py`](src/optim/post_process.py)).
 
 This design is optimizer-agnostic and requires no modifications to the internals of the base optimizer. (However, it is recommended to integrate SPECTRA directly into the base optimizer to eliminate redundant computation.)
 
@@ -59,8 +59,7 @@ To evaluate trained checkpoints on standard benchmarks using [lm-evaluation-harn
 
 
 ## More Available Hyperparameters
-
-All SPECTRA-related hyperparameters are defined in [`src/config/base.py`](src/config/base.py).
+We introduce a few SPECTRA-related hyperparameters here; the remaining ones can be found in [`src/config/base.py`](src/config/base.py). 
 
 ### Spectral Post-Processing (Applied to Updates)
 
@@ -73,14 +72,10 @@ All SPECTRA-related hyperparameters are defined in [`src/config/base.py`](src/co
 
 ### Clipping Threshold Schedule
 
-By default, the clipping threshold is adjusted dynamically during warmup so that $c \cdot \eta = \text{const}$. During an optional decay phase, $c$ can be annealed down.
+By default, the clipping threshold $c$ is adjusted dynamically during warmup phase so that $c \cdot \eta = \text{const}$, and stays constant afterwards. This default behaviour was sufficient for all experiments in our paper, and we recommend it as the starting point.
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `--disable_dynamic_clip` | `False` | If set, use a constant $c$ throughout training (no warmup or decay adjustment) |
-| `--clip_decay_type` | `constant` | Decay schedule for $c$ in the final phase: `constant`, `linear`, `sqrt`, `cosine`, `exp`, or `square` |
-| `--clip_decay_fract` | `None` | Fraction of total iterations for the decay phase (defaults to `--wsd_fract_decay` if not set) |
-| `--clip_final_scale` | `0.0` | Final scale factor — $c$ decays from `clip_c` to `clip_c * clip_final_scale` |
+Other clipping-threshold dynamics — disabling the warmup adjustment, decaying $c$ in a final phase, or shaping the decay with a custom curve — are also available in [`src/config/base.py`](src/config/base.py).
+
 
 ### Spectral Gradient Pre-Clipping
 
@@ -91,6 +86,8 @@ In addition to post-processing optimizer updates, SPECTRA supports per-parameter
 |-----------|---------|-------------|
 | `--spectral_grad_clip` | `none` | Pre-clipping mode for raw gradients: `none` or `clip` |
 | `--spectral_grad_clip_c` | `0.1` | Clipping threshold for spectral gradient clipping |
+
+Similar to post-clipping, various clipping-threshold dynamics for pre-clipping are also available for exploration. 
 
 **Order of operations in the training loop:**
 1. Backward pass (compute gradients)

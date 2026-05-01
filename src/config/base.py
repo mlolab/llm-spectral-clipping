@@ -131,7 +131,7 @@ def parse_args(base_parser, args, namespace):
         default="none",
         type=str,
         choices=["none", "clip"],
-        help="Pre-clipping mode for raw gradients: 'none' or 'clip' (spectral clipping)",
+        help="Pre-clipping mode for raw gradients: 'none' (recommended) or 'clip' (spectral clipping)",
     )
     parser.add_argument(
         "--spectral_grad_clip_c",
